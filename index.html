@@ -12,6 +12,18 @@
   --gris-borde: #2A2A2A; --gris-texto: #777;
   --blanco: #F5F5F5; --blanco-dim: #AAAAAA;
   --verde: #4CAF50; --amarillo: #FFC107;
+
+  /* Colores por labor */
+  --c-clase:       #1565C0;
+  --c-preparar:    #6A1B9A;
+  --c-ep:          #00695C;
+  --c-prep-ep:     #2E7D32;
+  --c-video-g:     #E65100;
+  --c-video-e:     #BF360C;
+  --c-llamadas:    #F9A825;
+  --c-flyers:      #558B2F;
+  --c-limpieza:    #4E342E;
+  --c-instagram:   #AD1457;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--negro); color: var(--blanco); font-family: "Inter", sans-serif; min-height: 100vh; }
@@ -33,7 +45,6 @@ body { background: var(--negro); color: var(--blanco); font-family: "Inter", san
 .main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
 .hidden { display: none !important; }
 
-/* LOADER */
 .loader-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 999; }
 .loader-spinner { width: 36px; height: 36px; border: 3px solid var(--gris-borde); border-top-color: var(--granate); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .loader-txt { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--gris-texto); }
@@ -58,18 +69,52 @@ body { background: var(--negro); color: var(--blanco); font-family: "Inter", san
 
 .sched-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .section-label { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-texto); }
+
+/* ── LEYENDA ── */
+.leyenda { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--blanco-dim); }
+.leyenda-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── GRID ── */
 .grid { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
-.slot { display: grid; grid-template-columns: 80px 200px 1fr; border-bottom: 1px solid var(--gris-borde); min-height: 52px; align-items: stretch; }
+
+.slot { display: grid; grid-template-columns: 72px 44px 1fr 1fr; border-bottom: 1px solid var(--gris-borde); min-height: 48px; align-items: stretch; transition: background 0.2s; }
 .slot:last-child { border-bottom: none; }
-.slot-time { padding: 0 14px; display: flex; align-items: center; font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); border-right: 1px solid var(--gris-borde); background: var(--gris-oscuro); }
-.slot-select { background: transparent; border: none; border-right: 1px solid var(--gris-borde); color: var(--blanco-dim); font-family: "Inter", sans-serif; font-size: 13px; cursor: pointer; padding: 0 14px; width: 100%; appearance: none; -webkit-appearance: none; }
-.slot-select:focus { outline: none; background: rgba(151,39,46,0.08); }
+
+.slot-time { padding: 0 12px; display: flex; align-items: center; font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); border-right: 1px solid var(--gris-borde); background: var(--gris-oscuro); }
+
+/* Botón rápido "Clase" */
+.slot-clase-btn { border: none; border-right: 1px solid var(--gris-borde); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; color: var(--gris-borde); font-size: 16px; }
+.slot-clase-btn:hover { background: rgba(21,101,192,0.25); color: #90CAF9; }
+.slot-clase-btn.activo { background: rgba(21,101,192,0.35); color: #90CAF9; }
+.slot-clase-btn title { display: none; }
+
+.slot-select { background: transparent; border: none; border-right: 1px solid var(--gris-borde); color: var(--blanco-dim); font-family: "Inter", sans-serif; font-size: 12px; cursor: pointer; padding: 0 12px; width: 100%; appearance: none; -webkit-appearance: none; }
+.slot-select:focus { outline: none; }
 .slot-select option { background: #1E1E1E; }
-.slot-select.filled { color: var(--blanco); }
-.slot-comment { background: transparent; border: none; color: var(--gris-texto); font-family: "Inter", sans-serif; font-size: 12px; padding: 14px; resize: none; width: 100%; height: 52px; }
-.slot-comment:focus { outline: none; color: var(--blanco); background: rgba(255,255,255,0.02); }
-.slot-comment::placeholder { color: #3a3a3a; }
-.slot.activo { border-left: 3px solid var(--granate); }
+.slot-select.filled { color: var(--blanco); font-weight: 500; }
+
+.slot-comment { background: transparent; border: none; color: var(--gris-texto); font-family: "Inter", sans-serif; font-size: 11px; padding: 12px; resize: none; width: 100%; height: 48px; }
+.slot-comment:focus { outline: none; color: var(--blanco); }
+.slot-comment::placeholder { color: #333; }
+
+/* Colores de fondo por labor */
+.slot[data-labor="Impartir clase"]           { background: rgba(21,101,192,0.18); border-left: 3px solid #1565C0; }
+.slot[data-labor="Preparar clase"]           { background: rgba(106,27,154,0.18); border-left: 3px solid #6A1B9A; }
+.slot[data-labor="Entrenamiento personal"]   { background: rgba(0,105,92,0.18);   border-left: 3px solid #00695C; }
+.slot[data-labor="Preparar EP personalizado"]{ background: rgba(46,125,50,0.18);  border-left: 3px solid #2E7D32; }
+.slot[data-labor="Grabar vídeo"]             { background: rgba(230,81,0,0.18);   border-left: 3px solid #E65100; }
+.slot[data-labor="Editar vídeo"]             { background: rgba(191,54,12,0.18);  border-left: 3px solid #BF360C; }
+.slot[data-labor="Llamadas"]                 { background: rgba(249,168,37,0.15); border-left: 3px solid #F9A825; }
+.slot[data-labor="Repartir flyers"]          { background: rgba(85,139,47,0.18);  border-left: 3px solid #558B2F; }
+.slot[data-labor="Limpieza"]                 { background: rgba(78,52,46,0.25);   border-left: 3px solid #795548; }
+.slot[data-labor="Gestión Instagram"]        { background: rgba(173,20,87,0.18);  border-left: 3px solid #AD1457; }
+
+/* Ajustar color de texto en slots con labor */
+.slot[data-labor] .slot-time { background: transparent; }
+.slot[data-labor] .slot-select { color: var(--blanco); font-weight: 500; }
+.slot[data-labor] .slot-comment { color: var(--blanco-dim); }
+.slot[data-labor] .slot-comment::placeholder { color: rgba(255,255,255,0.2); }
 
 .save-bar { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 20px; }
 .save-msg { font-size: 11px; color: var(--verde); font-family: "Space Mono", monospace; opacity: 0; transition: opacity 0.3s; }
@@ -78,6 +123,7 @@ body { background: var(--negro); color: var(--blanco); font-family: "Inter", san
 .btn-save:hover { background: var(--granate-dark); }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* RESUMEN */
 .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 .r-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
 .r-card-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); display: flex; align-items: center; gap: 10px; }
@@ -108,12 +154,13 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .comp-valor { font-family: "Space Mono", monospace; font-size: 18px; font-weight: 700; color: var(--granate); }
 .comp-valor.ok { color: var(--verde); }
 
+/* INFORME */
 .informe-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
 .period-btn { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 18px; border-radius: 3px; border: 1px solid var(--gris-borde); background: var(--gris-medio); color: var(--blanco-dim); cursor: pointer; transition: all 0.15s; }
 .period-btn:hover { border-color: var(--granate); color: var(--blanco); }
 .period-btn.active { background: var(--granate); border-color: var(--granate); color: #fff; }
 .range-wrap { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.range-wrap label { font-size: 10px; color: var(--gris-texto); font-family: "Space Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+.range-wrap label { font-size: 10px; color: var(--gris-texto); font-family: "Space Mono", monospace; text-transform: uppercase; }
 .range-wrap input[type="date"] { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 3px; color: var(--blanco); font-family: "Space Mono", monospace; font-size: 11px; padding: 6px 10px; }
 .range-sep { color: var(--gris-texto); }
 .inf-emp-filter { display: flex; gap: 8px; }
@@ -125,11 +172,12 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .inf-card-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); display: flex; align-items: center; justify-content: space-between; }
 .inf-card-title { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
 .inf-card-total { font-family: "Space Mono", monospace; font-size: 13px; color: var(--granate); }
-.inf-labor-row { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid rgba(42,42,42,0.4); }
+.inf-labor-row { display: flex; align-items: center; gap: 12px; padding: 9px 18px; border-bottom: 1px solid rgba(42,42,42,0.4); }
 .inf-labor-row:last-child { border-bottom: none; }
-.inf-labor-name { font-size: 13px; color: var(--blanco-dim); flex: 1; }
-.inf-labor-bar-wrap { width: 120px; height: 4px; background: var(--gris-borde); border-radius: 2px; overflow: hidden; }
-.inf-labor-bar { height: 100%; background: var(--granate); border-radius: 2px; transition: width 0.4s ease; }
+.inf-labor-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.inf-labor-name { font-size: 12px; color: var(--blanco-dim); flex: 1; }
+.inf-labor-bar-wrap { width: 100px; height: 4px; background: var(--gris-borde); border-radius: 2px; overflow: hidden; }
+.inf-labor-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
 .inf-labor-hrs { font-family: "Space Mono", monospace; font-size: 12px; color: var(--blanco); min-width: 36px; text-align: right; }
 .inf-empty { padding: 20px 18px; font-size: 12px; color: var(--gris-texto); }
 .inf-combined { margin-top: 22px; background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
@@ -142,7 +190,6 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 </head>
 <body>
 
-<!-- LOADER -->
 <div class="loader-overlay" id="loader">
   <div class="loader-spinner"></div>
   <div class="loader-txt">Cargando datos...</div>
@@ -174,6 +221,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
         <input type="date" id="fecha-picker" onchange="onFechaChange()">
       </div>
     </div>
+
     <div class="stats-row">
       <div class="stat">
         <div class="stat-label">Horas hoy</div>
@@ -196,10 +244,16 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
         <div class="stat-sub" id="stat-comp-sub">pendiente</div>
       </div>
     </div>
+
     <div class="sched-header">
       <span class="section-label" id="sched-titulo">Franjas horarias — Diego</span>
     </div>
+
+    <!-- LEYENDA -->
+    <div class="leyenda" id="leyenda"></div>
+
     <div class="grid" id="grid-slots"></div>
+
     <div class="save-bar">
       <span class="save-msg" id="save-msg">Guardado en Sheets ✓</span>
       <button class="btn-save" id="btn-guardar" onclick="guardar()">Guardar día</button>
@@ -294,19 +348,21 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMBUYb-BLIbo9iE3aQbqF-1CHYrHKPGpxsFm_iEnads4DuZahwDM3pkdlI7-ck0dh0/exec";
 
-const LABORES = [
-  "",
-  "Preparar clase",
-  "Impartir clase",
-  "Entrenamiento personal",
-  "Preparar EP personalizado",
-  "Grabar vídeo",
-  "Editar vídeo",
-  "Llamadas",
-  "Repartir flyers",
-  "Limpieza",
-  "Gestión Instagram"
-];
+// Mapa labor → color
+const LABOR_COLORS = {
+  "Impartir clase":             "#1565C0",
+  "Preparar clase":             "#6A1B9A",
+  "Entrenamiento personal":     "#00695C",
+  "Preparar EP personalizado":  "#2E7D32",
+  "Grabar vídeo":               "#E65100",
+  "Editar vídeo":               "#BF360C",
+  "Llamadas":                   "#F9A825",
+  "Repartir flyers":            "#558B2F",
+  "Limpieza":                   "#795548",
+  "Gestión Instagram":          "#AD1457"
+};
+
+const LABORES = ["", ...Object.keys(LABOR_COLORS)];
 
 const FRANJAS = [];
 for (let h = 7; h < 21; h++) {
@@ -324,22 +380,19 @@ let datos = {};
 let infEmp = "ambos";
 let infPeriodo = "semana";
 
-// ── INIT: cargar datos desde Sheets ─────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────────
 async function init() {
   setSyncStatus("loading", "Sincronizando...");
+  renderLeyenda();
   try {
     const res = await fetch(SCRIPT_URL + "?accion=todos");
     const json = await res.json();
     if (json.ok) {
       datos = json.datos || {};
       setSyncStatus("ok", "Conectado · Sheets");
-    } else {
-      throw new Error(json.error);
-    }
-  } catch (err) {
-    console.error("Error cargando datos:", err);
+    } else throw new Error(json.error);
+  } catch(err) {
     setSyncStatus("err", "Sin conexión");
-    // Fallback a localStorage si falla Sheets
     datos = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}");
   }
   document.getElementById("fecha-picker").value = fechaActual;
@@ -347,138 +400,123 @@ async function init() {
   renderGrid();
   renderStats();
 }
-
 init();
 
 // ── HELPERS ──────────────────────────────────────────────────────
 function pad(n) { return String(n).padStart(2, "0"); }
-
 function hoy() {
   const d = new Date();
   return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
 }
-
-function setSyncStatus(estado, texto) {
+function setSyncStatus(e, t) {
   const el = document.getElementById("sync-indicator");
-  el.textContent = texto;
-  el.className = "sync-indicator " + estado;
+  el.textContent = t; el.className = "sync-indicator " + e;
 }
-
 function horasDelDia(emp, fecha) {
   const d = datos[emp] && datos[emp][fecha] ? datos[emp][fecha] : {};
-  let count = 0;
-  Object.values(d).forEach(v => { if (v.labor) count++; });
-  return count * 0.5;
+  return Object.values(d).filter(v => v.labor).length * 0.5;
 }
-
 function horasSemana(emp, fechaRef) {
   const d = new Date(fechaRef + "T12:00:00");
   const lunes = new Date(d);
-  lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  lunes.setDate(d.getDate() - ((d.getDay()+6)%7));
   let total = 0;
   for (let i = 0; i < 7; i++) {
-    const f = new Date(lunes);
-    f.setDate(lunes.getDate() + i);
-    const key = f.getFullYear() + "-" + pad(f.getMonth()+1) + "-" + pad(f.getDate());
-    total += horasDelDia(emp, key);
+    const f = new Date(lunes); f.setDate(lunes.getDate()+i);
+    total += horasDelDia(emp, f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate()));
   }
   return total;
 }
-
 function horasTotal(emp) {
   if (!datos[emp]) return 0;
-  let total = 0;
-  Object.keys(datos[emp]).forEach(f => { total += horasDelDia(emp, f); });
-  return total;
+  return Object.keys(datos[emp]).reduce((t,f) => t + horasDelDia(emp,f), 0);
 }
-
 function horasACompensar(emp) {
   if (!datos[emp]) return HORAS_INICIALES[emp];
-  let horasExtra = 0;
-  Object.keys(datos[emp]).forEach(f => {
-    const h = horasDelDia(emp, f);
-    if (h > OBJETIVO_DIA) horasExtra += (h - OBJETIVO_DIA);
-  });
-  return Math.max(0, HORAS_INICIALES[emp] - horasExtra);
+  let extra = 0;
+  Object.keys(datos[emp]).forEach(f => { const h=horasDelDia(emp,f); if(h>OBJETIVO_DIA) extra+=h-OBJETIVO_DIA; });
+  return Math.max(0, HORAS_INICIALES[emp] - extra);
 }
 
-function getRangoSemana() {
-  const d = new Date(hoy() + "T12:00:00");
-  const lunes = new Date(d);
-  lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  const domingo = new Date(lunes);
-  domingo.setDate(lunes.getDate() + 6);
-  const fmt = x => x.getFullYear() + "-" + pad(x.getMonth()+1) + "-" + pad(x.getDate());
-  return { desde: fmt(lunes), hasta: fmt(domingo) };
-}
-
-function getRangoMes() {
-  const d = new Date();
-  const desde = d.getFullYear() + "-" + pad(d.getMonth()+1) + "-01";
-  const ultimo = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  const hasta = ultimo.getFullYear() + "-" + pad(ultimo.getMonth()+1) + "-" + pad(ultimo.getDate());
-  return { desde, hasta };
-}
-
-function getRangoActual() {
-  if (infPeriodo === "semana") return getRangoSemana();
-  if (infPeriodo === "mes") return getRangoMes();
-  return {
-    desde: document.getElementById("inf-desde").value || hoy(),
-    hasta: document.getElementById("inf-hasta").value || hoy()
-  };
-}
-
-function calcTareasPorEmpleado(emp, desde, hasta) {
-  const result = {};
-  LABORES.filter(l => l).forEach(l => result[l] = 0);
-  if (!datos[emp]) return result;
-  Object.keys(datos[emp]).forEach(fecha => {
-    if (fecha < desde || fecha > hasta) return;
-    Object.values(datos[emp][fecha]).forEach(v => {
-      if (v.labor && result[v.labor] !== undefined) result[v.labor] += 0.5;
-    });
-  });
-  return result;
+// ── LEYENDA ──────────────────────────────────────────────────────
+function renderLeyenda() {
+  const el = document.getElementById("leyenda");
+  el.innerHTML = Object.entries(LABOR_COLORS).map(([l,c]) =>
+    `<div class="leyenda-item"><div class="leyenda-dot" style="background:${c}"></div>${l}</div>`
+  ).join("");
 }
 
 // ── RENDER GRID ──────────────────────────────────────────────────
 function renderGrid() {
   const emp = empleadoActual;
   const fecha = fechaActual;
-  const diaData = (datos[emp] && datos[emp][fecha]) ? datos[emp][fecha] : {};
+  const diaData = (datos[emp]&&datos[emp][fecha]) ? datos[emp][fecha] : {};
   document.getElementById("sched-titulo").textContent = "Franjas horarias — " + emp;
 
   let html = "";
   FRANJAS.forEach(franja => {
-    const val = diaData[franja] || { labor: "", comentario: "" };
-    const filled = val.labor ? "filled" : "";
-    const slotCls = val.labor ? "slot activo" : "slot";
+    const val = diaData[franja] || { labor:"", comentario:"" };
+    const labor = val.labor || "";
+    const esClase = labor === "Impartir clase";
+    const dataAttr = labor ? ` data-labor="${labor}"` : "";
+
     const opts = LABORES.map(l =>
-      "<option value=\"" + l + "\"" + (l === val.labor ? " selected" : "") + ">" + (l || "— sin labor —") + "</option>"
+      `<option value="${l}"${l===labor?" selected":""}>${l||"— otra labor —"}</option>`
     ).join("");
-    html += "<div class=\"" + slotCls + "\" id=\"slot-" + franja + "\">";
-    html += "<div class=\"slot-time\">" + franja + "</div>";
-    html += "<select class=\"slot-select " + filled + "\" onchange=\"onLaborChange(this,'" + franja + "')\">" + opts + "</select>";
-    html += "<textarea class=\"slot-comment\" placeholder=\"Comentario...\" onchange=\"onCommentChange(this,'" + franja + "')\">" + (val.comentario || "") + "</textarea>";
-    html += "</div>";
+
+    html += `<div class="slot" id="slot-${franja}"${dataAttr}>`;
+    html += `<div class="slot-time">${franja}</div>`;
+    // Botón rápido clase
+    html += `<button class="slot-clase-btn${esClase?" activo":""}" onclick="toggleClase('${franja}')" title="Impartir clase">▶</button>`;
+    html += `<select class="slot-select${labor?" filled":""}" onchange="onLaborChange(this,'${franja}')">${opts}</select>`;
+    html += `<textarea class="slot-comment" placeholder="Comentario..." onchange="onCommentChange(this,'${franja}')">${val.comentario||""}</textarea>`;
+    html += `</div>`;
   });
   document.getElementById("grid-slots").innerHTML = html;
 }
 
+// ── TOGGLE RÁPIDO CLASE ──────────────────────────────────────────
+function toggleClase(franja) {
+  ensureDia();
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
+  const actual = datos[empleadoActual][fechaActual][franja].labor;
+  const nuevo = actual === "Impartir clase" ? "" : "Impartir clase";
+  datos[empleadoActual][fechaActual][franja].labor = nuevo;
+  actualizarSlot(franja, nuevo);
+  renderStats();
+}
+
 function onLaborChange(sel, franja) {
   ensureDia();
-  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = { labor: "", comentario: "" };
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
   datos[empleadoActual][fechaActual][franja].labor = sel.value;
-  sel.classList.toggle("filled", !!sel.value);
-  const slot = document.getElementById("slot-" + franja);
-  if (sel.value) slot.classList.add("activo"); else slot.classList.remove("activo");
+  actualizarSlot(franja, sel.value);
   renderStats();
+}
+
+function actualizarSlot(franja, labor) {
+  const slot = document.getElementById("slot-" + franja);
+  const btn = slot.querySelector(".slot-clase-btn");
+  const sel = slot.querySelector(".slot-select");
+
+  // Actualizar data-labor y clases
+  if (labor) {
+    slot.setAttribute("data-labor", labor);
+  } else {
+    slot.removeAttribute("data-labor");
+  }
+
+  // Sincronizar select
+  sel.value = labor;
+  sel.classList.toggle("filled", !!labor);
+
+  // Botón clase
+  btn.classList.toggle("activo", labor === "Impartir clase");
 }
 
 function onCommentChange(ta, franja) {
   ensureDia();
-  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = { labor: "", comentario: "" };
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
   datos[empleadoActual][fechaActual][franja].comentario = ta.value;
 }
 
@@ -492,176 +530,172 @@ function renderStats() {
   const emp = empleadoActual;
   const hd = horasDelDia(emp, fechaActual);
   const hs = horasSemana(emp, fechaActual);
-  const ht = horasTotal(emp);
   const comp = horasACompensar(emp);
 
-  const svHoy = document.getElementById("stat-hoy");
-  svHoy.textContent = hd + "h";
-  svHoy.className = "stat-value " + (hd >= OBJETIVO_DIA ? "ok" : hd >= OBJETIVO_DIA*0.7 ? "warn" : "bad");
+  const sh = document.getElementById("stat-hoy");
+  sh.textContent = hd+"h";
+  sh.className = "stat-value "+(hd>=OBJETIVO_DIA?"ok":hd>=OBJETIVO_DIA*.7?"warn":"bad");
 
-  const svSem = document.getElementById("stat-semana");
-  svSem.textContent = hs + "h";
-  svSem.className = "stat-value " + (hs >= OBJETIVO_SEMANA ? "ok" : hs >= OBJETIVO_SEMANA*0.7 ? "warn" : "bad");
+  const ss = document.getElementById("stat-semana");
+  ss.textContent = hs+"h";
+  ss.className = "stat-value "+(hs>=OBJETIVO_SEMANA?"ok":hs>=OBJETIVO_SEMANA*.7?"warn":"bad");
 
-  document.getElementById("stat-total").textContent = ht + "h";
+  document.getElementById("stat-total").textContent = horasTotal(emp)+"h";
 
-  const svComp = document.getElementById("stat-comp");
-  svComp.textContent = comp + "h";
-  svComp.className = "stat-value " + (comp === 0 ? "ok" : "bad");
-  document.getElementById("stat-comp-sub").textContent = comp === 0 ? "Al día ✓" : "pendiente de compensar";
+  const sc = document.getElementById("stat-comp");
+  sc.textContent = comp+"h";
+  sc.className = "stat-value "+(comp===0?"ok":"bad");
+  document.getElementById("stat-comp-sub").textContent = comp===0?"Al día ✓":"pendiente de compensar";
 }
 
-// ── GUARDAR en Sheets ────────────────────────────────────────────
+// ── GUARDAR ──────────────────────────────────────────────────────
 async function guardar() {
   const btn = document.getElementById("btn-guardar");
   const msg = document.getElementById("save-msg");
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
-  setSyncStatus("loading", "Guardando...");
-
-  const franjas = (datos[empleadoActual] && datos[empleadoActual][fechaActual])
-    ? datos[empleadoActual][fechaActual]
-    : {};
-
+  btn.disabled = true; btn.textContent = "Guardando...";
+  setSyncStatus("loading","Guardando...");
+  const franjas = (datos[empleadoActual]&&datos[empleadoActual][fechaActual]) ? datos[empleadoActual][fechaActual] : {};
   try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ empleado: empleadoActual, fecha: fechaActual, franjas })
-    });
+    const res = await fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify({empleado:empleadoActual, fecha:fechaActual, franjas}) });
     const json = await res.json();
     if (json.ok) {
-      setSyncStatus("ok", "Guardado · Sheets");
+      setSyncStatus("ok","Guardado · Sheets");
       msg.textContent = "Guardado en Sheets ✓";
-      msg.classList.add("show");
-      // Backup local
-      localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
-    } else {
-      throw new Error(json.error);
-    }
-  } catch (err) {
-    setSyncStatus("err", "Error al guardar");
+    } else throw new Error(json.error);
+  } catch(err) {
+    setSyncStatus("err","Error al guardar");
     msg.textContent = "Error — guardado solo local";
-    msg.classList.add("show");
-    localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
   }
-
+  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
+  msg.classList.add("show");
   setTimeout(() => msg.classList.remove("show"), 3000);
-  btn.disabled = false;
-  btn.textContent = "Guardar día";
+  btn.disabled = false; btn.textContent = "Guardar día";
 }
 
 // ── TABS ─────────────────────────────────────────────────────────
 function showTab(tab) {
-  ["registro","resumen","informe"].forEach(t => {
-    document.getElementById("tab-" + t).classList.toggle("hidden", t !== tab);
-  });
-  document.querySelectorAll(".tab").forEach((t, i) => {
-    t.classList.toggle("active", ["registro","resumen","informe"][i] === tab);
-  });
-  if (tab === "resumen") renderResumen();
-  if (tab === "informe") renderInforme();
+  ["registro","resumen","informe"].forEach(t =>
+    document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab));
+  document.querySelectorAll(".tab").forEach((t,i) =>
+    t.classList.toggle("active", ["registro","resumen","informe"][i]===tab));
+  if (tab==="resumen") renderResumen();
+  if (tab==="informe") renderInforme();
 }
-
 function setEmpleado(emp) {
   empleadoActual = emp;
-  document.getElementById("btn-Diego").classList.toggle("active", emp === "Diego");
-  document.getElementById("btn-Jesus").classList.toggle("active", emp === "Jesus");
-  renderGrid();
-  renderStats();
+  document.getElementById("btn-Diego").classList.toggle("active", emp==="Diego");
+  document.getElementById("btn-Jesus").classList.toggle("active", emp==="Jesus");
+  renderGrid(); renderStats();
 }
-
 function onFechaChange() {
   fechaActual = document.getElementById("fecha-picker").value;
-  renderGrid();
-  renderStats();
+  renderGrid(); renderStats();
 }
 
 // ── RESUMEN ──────────────────────────────────────────────────────
 function renderResumen() {
   ["Diego","Jesus"].forEach(emp => {
-    const id = emp === "Jesus" ? "jesus" : "diego";
-    const diasOrdenados = datos[emp] ? Object.keys(datos[emp]).sort().reverse().slice(0,7) : [];
+    const id = emp==="Jesus"?"jesus":"diego";
+    const dias = datos[emp] ? Object.keys(datos[emp]).sort().reverse().slice(0,7) : [];
     let filas = "";
-    diasOrdenados.forEach(f => {
-      const h = horasDelDia(emp, f);
-      if (h === 0) return;
-      const cls = h >= OBJETIVO_DIA ? "ok" : h >= OBJETIVO_DIA*0.7 ? "warn" : "bad";
-      const ff = f.split("-").reverse().join("/");
-      filas += "<tr><td>" + ff + "</td><td class=\"" + cls + "\">" + h + "h</td><td class=\"" + cls + "\">" + (h >= OBJETIVO_DIA ? "Completo" : "Parcial") + "</td></tr>";
+    dias.forEach(f => {
+      const h = horasDelDia(emp,f);
+      if (!h) return;
+      const cls = h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.7?"warn":"bad";
+      filas += `<tr><td>${f.split("-").reverse().join("/")}</td><td class="${cls}">${h}h</td><td class="${cls}">${h>=OBJETIVO_DIA?"Completo":"Parcial"}</td></tr>`;
     });
-    if (!filas) filas = "<tr><td colspan=\"3\" style=\"color:var(--gris-texto);font-size:11px;padding:14px 16px\">Sin registros aún</td></tr>";
-    document.getElementById("tabla-" + id).innerHTML = filas;
-
+    if (!filas) filas = `<tr><td colspan="3" style="color:var(--gris-texto);font-size:11px;padding:14px 16px">Sin registros aún</td></tr>`;
+    document.getElementById("tabla-"+id).innerHTML = filas;
     const hs = horasSemana(emp, hoy());
-    const pct = Math.min(100, (hs / OBJETIVO_SEMANA) * 100);
-    document.getElementById("prog-" + id + "-txt").textContent = hs + " / " + OBJETIVO_SEMANA + "h";
-    const fill = document.getElementById("prog-" + id);
-    fill.style.width = pct + "%";
-    fill.className = "prog-fill" + (pct >= 100 ? " ok" : "");
-
+    const pct = Math.min(100,(hs/OBJETIVO_SEMANA)*100);
+    document.getElementById("prog-"+id+"-txt").textContent = hs+" / "+OBJETIVO_SEMANA+"h";
+    const fill = document.getElementById("prog-"+id);
+    fill.style.width = pct+"%"; fill.className = "prog-fill"+(pct>=100?" ok":"");
     const comp = horasACompensar(emp);
-    document.getElementById("total-" + id).textContent = comp + "h";
-    document.getElementById("total-" + id).className = "total-val " + (comp === 0 ? "ok" : "bad");
-    document.getElementById("comp-total-" + id).textContent = comp + "h";
-    document.getElementById("comp-total-" + id).className = "comp-valor" + (comp === 0 ? " ok" : "");
+    document.getElementById("total-"+id).textContent = comp+"h";
+    document.getElementById("total-"+id).className = "total-val "+(comp===0?"ok":"bad");
+    document.getElementById("comp-total-"+id).textContent = comp+"h";
+    document.getElementById("comp-total-"+id).className = "comp-valor"+(comp===0?" ok":"");
   });
 }
 
 // ── INFORME ──────────────────────────────────────────────────────
+function getRangoSemana() {
+  const d = new Date(hoy()+"T12:00:00"), l = new Date(d);
+  l.setDate(d.getDate()-((d.getDay()+6)%7));
+  const v = new Date(l); v.setDate(l.getDate()+6);
+  const fmt = x => x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate());
+  return { desde: fmt(l), hasta: fmt(v) };
+}
+function getRangoMes() {
+  const d = new Date();
+  const desde = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-01";
+  const u = new Date(d.getFullYear(),d.getMonth()+1,0);
+  return { desde, hasta: u.getFullYear()+"-"+pad(u.getMonth()+1)+"-"+pad(u.getDate()) };
+}
+function getRangoActual() {
+  if (infPeriodo==="semana") return getRangoSemana();
+  if (infPeriodo==="mes") return getRangoMes();
+  return { desde: document.getElementById("inf-desde").value||hoy(), hasta: document.getElementById("inf-hasta").value||hoy() };
+}
+function calcTareas(emp, desde, hasta) {
+  const r = {};
+  Object.keys(LABOR_COLORS).forEach(l => r[l]=0);
+  if (!datos[emp]) return r;
+  Object.keys(datos[emp]).forEach(f => {
+    if (f<desde||f>hasta) return;
+    Object.values(datos[emp][f]).forEach(v => { if(v.labor&&r[v.labor]!==undefined) r[v.labor]+=0.5; });
+  });
+  return r;
+}
 function setInfEmp(emp) {
   infEmp = emp;
-  ["ambos","Diego","Jesus"].forEach(e => {
-    document.getElementById("inf-btn-" + e).classList.toggle("active", e === emp);
-  });
+  ["ambos","Diego","Jesus"].forEach(e => document.getElementById("inf-btn-"+e).classList.toggle("active",e===emp));
   renderInforme();
 }
-
 function setPeriodo(p) {
   infPeriodo = p;
-  ["semana","mes","custom"].forEach(x => {
-    document.getElementById("pbtn-" + x).classList.toggle("active", x === p);
-  });
-  document.getElementById("range-custom").style.display = p === "custom" ? "flex" : "none";
-  if (p !== "custom") renderInforme();
+  ["semana","mes","custom"].forEach(x => document.getElementById("pbtn-"+x).classList.toggle("active",x===p));
+  document.getElementById("range-custom").style.display = p==="custom"?"flex":"none";
+  if (p!=="custom") renderInforme();
 }
-
 function renderInforme() {
-  const { desde, hasta } = getRangoActual();
-  const emps = infEmp === "ambos" ? ["Diego","Jesus"] : [infEmp];
+  const {desde,hasta} = getRangoActual();
+  const emps = infEmp==="ambos"?["Diego","Jesus"]:[infEmp];
+  const combinado = {}; Object.keys(LABOR_COLORS).forEach(l => combinado[l]=0);
   let bodyHtml = "";
-  const combinado = {};
-  LABORES.filter(l => l).forEach(l => combinado[l] = 0);
 
   emps.forEach(emp => {
-    const tareas = calcTareasPorEmpleado(emp, desde, hasta);
-    const totalEmp = Object.values(tareas).reduce((a,b) => a+b, 0);
-    Object.keys(tareas).forEach(l => combinado[l] += tareas[l]);
-    const sorted = Object.entries(tareas).filter(([,h]) => h > 0).sort((a,b) => b[1]-a[1]);
+    const tareas = calcTareas(emp,desde,hasta);
+    const total = Object.values(tareas).reduce((a,b)=>a+b,0);
+    Object.keys(tareas).forEach(l => combinado[l]+=tareas[l]);
+    const sorted = Object.entries(tareas).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
     const maxH = sorted.length ? sorted[0][1] : 1;
-    let rowsHtml = sorted.length === 0
-      ? "<div class=\"inf-empty\">Sin registros en este período</div>"
-      : sorted.map(([labor, hrs]) => {
-          const pct = Math.round((hrs / maxH) * 100);
-          return "<div class=\"inf-labor-row\"><span class=\"inf-labor-name\">" + labor + "</span><div class=\"inf-labor-bar-wrap\"><div class=\"inf-labor-bar\" style=\"width:" + pct + "%\"></div></div><span class=\"inf-labor-hrs\">" + hrs + "h</span></div>";
+    const rows = sorted.length===0
+      ? `<div class="inf-empty">Sin registros en este período</div>`
+      : sorted.map(([l,h]) => {
+          const pct = Math.round((h/maxH)*100);
+          const color = LABOR_COLORS[l]||"#666";
+          return `<div class="inf-labor-row"><div class="inf-labor-dot" style="background:${color}"></div><span class="inf-labor-name">${l}</span><div class="inf-labor-bar-wrap"><div class="inf-labor-bar" style="width:${pct}%;background:${color}"></div></div><span class="inf-labor-hrs">${h}h</span></div>`;
         }).join("");
-    bodyHtml += "<div class=\"inf-card\"><div class=\"inf-card-head\"><span class=\"inf-card-title\">" + emp + "</span><span class=\"inf-card-total\">" + totalEmp + "h total</span></div>" + rowsHtml + "</div>";
+    bodyHtml += `<div class="inf-card"><div class="inf-card-head"><span class="inf-card-title">${emp}</span><span class="inf-card-total">${total}h total</span></div>${rows}</div>`;
   });
   document.getElementById("informe-body").innerHTML = bodyHtml;
 
   const combEl = document.getElementById("inf-combined");
-  if (infEmp === "ambos") {
-    const sortedComb = Object.entries(combinado).filter(([,h]) => h > 0).sort((a,b) => b[1]-a[1]);
-    const totalComb = sortedComb.reduce((a,[,h]) => a+h, 0);
-    const maxComb = sortedComb.length ? sortedComb[0][1] : 1;
-    const desde_fmt = desde.split("-").reverse().join("/");
-    const hasta_fmt = hasta.split("-").reverse().join("/");
-    const rows = sortedComb.length === 0
-      ? "<div class=\"inf-empty\">Sin registros en este período</div>"
-      : sortedComb.map(([labor, hrs]) => {
-          const pct = Math.round((hrs / maxComb) * 100);
-          return "<div class=\"inf-labor-row\"><span class=\"inf-labor-name\">" + labor + "</span><div class=\"inf-labor-bar-wrap\"><div class=\"inf-labor-bar\" style=\"width:" + pct + "%\"></div></div><span class=\"inf-labor-hrs\">" + hrs + "h</span></div>";
+  if (infEmp==="ambos") {
+    const sorted = Object.entries(combinado).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
+    const total = sorted.reduce((a,[,h])=>a+h,0);
+    const maxH = sorted.length ? sorted[0][1] : 1;
+    const df = desde.split("-").reverse().join("/"), hf = hasta.split("-").reverse().join("/");
+    const rows = sorted.length===0
+      ? `<div class="inf-empty">Sin registros en este período</div>`
+      : sorted.map(([l,h]) => {
+          const pct = Math.round((h/maxH)*100);
+          const color = LABOR_COLORS[l]||"#666";
+          return `<div class="inf-labor-row"><div class="inf-labor-dot" style="background:${color}"></div><span class="inf-labor-name">${l}</span><div class="inf-labor-bar-wrap"><div class="inf-labor-bar" style="width:${pct}%;background:${color}"></div></div><span class="inf-labor-hrs">${h}h</span></div>`;
         }).join("");
-    combEl.innerHTML = "<div class=\"inf-combined-head\">Total equipo — " + desde_fmt + " al " + hasta_fmt + " — " + totalComb + "h</div>" + rows;
+    combEl.innerHTML = `<div class="inf-combined-head">Total equipo — ${df} al ${hf} — ${total}h</div>${rows}`;
     combEl.style.display = "block";
   } else {
     combEl.style.display = "none";
