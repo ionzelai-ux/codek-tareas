@@ -438,15 +438,12 @@ function horasTotal(emp) {
 function horasACompensar(emp) {
   if (!datos[emp]) return HORAS_INICIALES[emp];
 
-  // Recorremos cada semana (lunes-domingo) que tenga registros y que ya haya terminado
-  // (es decir, cuyo domingo sea anterior a hoy). Si esa semana no llegó a 30h,
-  // el déficit se SUMA a las horas a compensar. La semana en curso no penaliza.
   const fechasConDatos = Object.keys(datos[emp]).filter(f => horasDelDia(emp, f) > 0);
   if (fechasConDatos.length === 0) return HORAS_INICIALES[emp];
 
   const hoyStr = hoy();
   const semanasVistas = new Set();
-  let deficitAcumulado = 0;
+  let balance = 0; // positivo = superávit (reduce lo que deben), negativo = déficit (aumenta)
 
   fechasConDatos.forEach(fechaStr => {
     const d = new Date(fechaStr + "T12:00:00");
@@ -456,19 +453,20 @@ function horasACompensar(emp) {
     if (semanasVistas.has(lunesKey)) return;
     semanasVistas.add(lunesKey);
 
+    // Solo semanas ya cerradas (su domingo ya pasó)
     const domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
     const domingoKey = domingo.getFullYear()+"-"+pad(domingo.getMonth()+1)+"-"+pad(domingo.getDate());
-
-    // Solo contamos semanas ya cerradas (domingo anterior a hoy)
     if (domingoKey >= hoyStr) return;
 
+    // Diferencia respecto a las 30h: positivo = han hecho más, negativo = han hecho menos
     const totalSemana = horasSemana(emp, lunesKey);
-    if (totalSemana < OBJETIVO_SEMANA) {
-      deficitAcumulado += (OBJETIVO_SEMANA - totalSemana);
-    }
+    balance += (totalSemana - OBJETIVO_SEMANA);
   });
 
-  return HORAS_INICIALES[emp] + deficitAcumulado;
+  // Horas a compensar = inicial - lo que han compensado con superávit + lo que deben por déficit
+  // balance positivo → han trabajado de más → reduce horas a compensar
+  // balance negativo → han trabajado de menos → aumenta horas a compensar
+  return Math.max(0, HORAS_INICIALES[emp] - balance);
 }
 
 // ── LEYENDA ──────────────────────────────────────────────────────
