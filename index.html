@@ -270,7 +270,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
       <div class="r-card">
         <div class="r-card-head">
           <span class="r-card-title">Diego</span>
-          <span class="inicial-badge">Inicial: 4h a compensar</span>
+          <span class="inicial-badge">Inicial: 3h a compensar</span>
         </div>
         <table class="wtable">
           <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
@@ -288,7 +288,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
       <div class="r-card">
         <div class="r-card-head">
           <span class="r-card-title">Jesús</span>
-          <span class="inicial-badge">Inicial: 8h a compensar</span>
+          <span class="inicial-badge">Inicial: 7h a compensar</span>
         </div>
         <table class="wtable">
           <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
@@ -309,14 +309,14 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
       <div class="comp-emp-row">
         <span class="comp-emp-name">Diego</span>
         <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales a compensar: 4h</div>
+          <div class="comp-inicial">Horas iniciales a compensar: 3h</div>
           <div class="comp-valor" id="comp-total-diego">4h</div>
         </div>
       </div>
       <div class="comp-emp-row">
         <span class="comp-emp-name">Jesús</span>
         <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales a compensar: 8h</div>
+          <div class="comp-inicial">Horas iniciales a compensar: 7h</div>
           <div class="comp-valor" id="comp-total-jesus">8h</div>
         </div>
       </div>
@@ -374,7 +374,8 @@ for (let h = 7; h < 21; h++) {
   FRANJAS.push(pad(h) + ":30");
 }
 
-const HORAS_INICIALES = { Diego: 4, Jesus: 8 };
+const HORAS_INICIALES = { Diego: 3, Jesus: 7 };
+const FECHA_INICIO = "2026-06-29"; // Fecha desde la que empieza a computar
 const OBJETIVO_DIA = 6;
 const OBJETIVO_SEMANA = 30;
 
@@ -438,34 +439,53 @@ function horasTotal(emp) {
 function horasACompensar(emp) {
   if (!datos[emp]) return HORAS_INICIALES[emp];
 
-  const fechasConDatos = Object.keys(datos[emp]).filter(f => horasDelDia(emp, f) > 0);
-  if (fechasConDatos.length === 0) return HORAS_INICIALES[emp];
-
   const hoyStr = hoy();
   const semanasVistas = new Set();
-  let balance = 0; // positivo = superávit (reduce lo que deben), negativo = déficit (aumenta)
+  let balance = 0;
 
-  fechasConDatos.forEach(fechaStr => {
-    const d = new Date(fechaStr + "T12:00:00");
-    const lunes = new Date(d);
-    lunes.setDate(d.getDate() - ((d.getDay()+6)%7));
-    const lunesKey = lunes.getFullYear()+"-"+pad(lunes.getMonth()+1)+"-"+pad(lunes.getDate());
-    if (semanasVistas.has(lunesKey)) return;
-    semanasVistas.add(lunesKey);
+  // Calculamos el lunes de la semana en que empieza a computar (29 jun 2026)
+  const dInicio = new Date(FECHA_INICIO + "T12:00:00");
+  const lunesInicio = new Date(dInicio);
+  lunesInicio.setDate(dInicio.getDate() - ((dInicio.getDay()+6)%7));
+  const lunesInicioKey = lunesInicio.getFullYear()+"-"+pad(lunesInicio.getMonth()+1)+"-"+pad(lunesInicio.getDate());
 
-    // Solo semanas ya cerradas (su domingo ya pasó)
-    const domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
+  // Recorremos todas las semanas desde la semana de inicio hasta hoy
+  const cursor = new Date(lunesInicio);
+  while (true) {
+    const lunesKey = cursor.getFullYear()+"-"+pad(cursor.getMonth()+1)+"-"+pad(cursor.getDate());
+
+    // Domingo de esta semana
+    const domingo = new Date(cursor); domingo.setDate(cursor.getDate()+6);
     const domingoKey = domingo.getFullYear()+"-"+pad(domingo.getMonth()+1)+"-"+pad(domingo.getDate());
-    if (domingoKey >= hoyStr) return;
 
-    // Diferencia respecto a las 30h: positivo = han hecho más, negativo = han hecho menos
-    const totalSemana = horasSemana(emp, lunesKey);
-    balance += (totalSemana - OBJETIVO_SEMANA);
-  });
+    // Solo semanas ya cerradas
+    if (domingoKey >= hoyStr) break;
 
-  // Horas a compensar = inicial - lo que han compensado con superávit + lo que deben por déficit
-  // balance positivo → han trabajado de más → reduce horas a compensar
-  // balance negativo → han trabajado de menos → aumenta horas a compensar
+    // Horas trabajadas esta semana (solo desde FECHA_INICIO en adelante)
+    let totalSemana = 0;
+    for (let i = 0; i < 7; i++) {
+      const f = new Date(cursor); f.setDate(cursor.getDate()+i);
+      const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
+      if (fKey < FECHA_INICIO) continue; // ignorar días anteriores al inicio
+      totalSemana += horasDelDia(emp, fKey);
+    }
+
+    // En la semana de inicio, el objetivo se proratea por los días que computan
+    let objetivoSemana = OBJETIVO_SEMANA;
+    if (lunesKey === lunesInicioKey) {
+      // Días laborables desde FECHA_INICIO hasta el viernes de esa semana
+      const viernesInicio = new Date(lunesInicio); viernesInicio.setDate(lunesInicio.getDate()+4);
+      const diasDesdeInicio = Math.min(5, Math.floor((viernesInicio - dInicio) / 86400000) + 1);
+      objetivoSemana = diasDesdeInicio * 6;
+    }
+
+    balance += (totalSemana - objetivoSemana);
+
+    // Avanzar al siguiente lunes
+    cursor.setDate(cursor.getDate()+7);
+    if (lunesKey > hoyStr) break;
+  }
+
   return Math.max(0, HORAS_INICIALES[emp] - balance);
 }
 
