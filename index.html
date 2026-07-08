@@ -209,6 +209,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
   <button class="tab active" onclick="showTab('registro')">Registro diario</button>
   <button class="tab" onclick="showTab('resumen')">Resumen</button>
   <button class="tab" onclick="showTab('informe')">Informe de tareas</button>
+  <button class="tab" onclick="showTab('calendario')">Calendario</button>
 </div>
 
 <div class="main">
@@ -347,7 +348,40 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
     <div class="inf-combined" id="inf-combined"></div>
   </div>
 
+  <!-- TAB CALENDARIO -->
+  <div id="tab-calendario" class="hidden">
+    <div class="cal-controls">
+      <button class="date-nav-btn" onclick="cambiarMes(-1)">‹</button>
+      <span class="cal-mes-label" id="cal-mes-label"></span>
+      <button class="date-nav-btn" onclick="cambiarMes(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
 </div>
+
+<style>
+/* ── CALENDARIO ── */
+.cal-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.cal-mes-label { font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blanco); min-width: 180px; text-align: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-dow { padding: 8px 4px; text-align: center; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gris-texto); }
+.cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 8px; min-height: 80px; position: relative; transition: border-color 0.15s; }
+.cal-day:hover { border-color: #444; }
+.cal-day.otro-mes { background: var(--gris-oscuro); opacity: 0.4; }
+.cal-day.hoy { border-color: var(--granate); }
+.cal-day.fin-semana { background: #181818; }
+.cal-num { font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); margin-bottom: 6px; }
+.cal-day.hoy .cal-num { color: var(--granate); font-weight: 700; }
+.cal-emp-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.cal-emp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cal-emp-hrs { font-family: "Space Mono", monospace; font-size: 10px; }
+.cal-emp-hrs.ok   { color: var(--verde); }
+.cal-emp-hrs.warn { color: var(--amarillo); }
+.cal-emp-hrs.bad  { color: var(--granate); }
+.cal-emp-hrs.vacio { color: #333; }
+.cal-emp-name { font-size: 9px; color: var(--gris-texto); }
+</style>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMBUYb-BLIbo9iE3aQbqF-1CHYrHKPGpxsFm_iEnads4DuZahwDM3pkdlI7-ck0dh0/exec";
@@ -674,12 +708,13 @@ async function guardar() {
 
 // ── TABS ─────────────────────────────────────────────────────────
 function showTab(tab) {
-  ["registro","resumen","informe"].forEach(t =>
+  ["registro","resumen","informe","calendario"].forEach(t =>
     document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab));
   document.querySelectorAll(".tab").forEach((t,i) =>
-    t.classList.toggle("active", ["registro","resumen","informe"][i]===tab));
+    t.classList.toggle("active", ["registro","resumen","informe","calendario"][i]===tab));
   if (tab==="resumen") renderResumen();
   if (tab==="informe") renderInforme();
+  if (tab==="calendario") renderCalendario();
 }
 function setEmpleado(emp) {
   empleadoActual = emp;
@@ -807,6 +842,81 @@ function renderInforme() {
   } else {
     combEl.style.display = "none";
   }
+}
+// ── CALENDARIO ───────────────────────────────────────────────────
+let calAnio = new Date().getFullYear();
+let calMes  = new Date().getMonth(); // 0-indexed
+
+function cambiarMes(delta) {
+  calMes += delta;
+  if (calMes > 11) { calMes = 0; calAnio++; }
+  if (calMes < 0)  { calMes = 11; calAnio--; }
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const hoyStr = hoy();
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  document.getElementById("cal-mes-label").textContent = MESES[calMes] + " " + calAnio;
+
+  // Primer y último día del mes
+  const primerDia = new Date(calAnio, calMes, 1);
+  const ultimoDia = new Date(calAnio, calMes + 1, 0);
+
+  // Día de la semana del primer día (0=Dom → ajustamos a Lunes=0)
+  const offsetInicio = (primerDia.getDay() + 6) % 7;
+
+  // Días totales a renderizar (incluyendo huecos del mes anterior y siguiente)
+  const totalCeldas = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
+
+  const DIAS = ["L","M","X","J","V","S","D"];
+  let html = DIAS.map(d => `<div class="cal-dow">${d}</div>`).join("");
+
+  for (let i = 0; i < totalCeldas; i++) {
+    const offset = i - offsetInicio;
+    const fecha = new Date(calAnio, calMes, 1 + offset);
+    const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
+    const esMesActual = fecha.getMonth() === calMes;
+    const esHoy = fechaStr === hoyStr;
+    const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+
+    let cls = "cal-day";
+    if (!esMesActual) cls += " otro-mes";
+    if (esHoy)        cls += " hoy";
+    if (esFinSemana)  cls += " fin-semana";
+
+    // Horas de cada empleado ese día
+    const empRows = ["Diego","Jesus"].map(emp => {
+      const h = horasDelDia(emp, fechaStr);
+      const nombre = emp === "Jesus" ? "Jesús" : "Diego";
+      const color = emp === "Diego" ? "#97272E" : "#1565C0";
+      let cls2 = "cal-emp-hrs";
+      if (!esMesActual) {
+        cls2 += " vacio";
+      } else if (h === 0) {
+        cls2 += " vacio";
+      } else if (h >= OBJETIVO_DIA) {
+        cls2 += " ok";
+      } else if (h >= OBJETIVO_DIA * 0.5) {
+        cls2 += " warn";
+      } else {
+        cls2 += " bad";
+      }
+      const texto = h > 0 ? h+"h" : "—";
+      return `<div class="cal-emp-row">
+        <div class="cal-emp-dot" style="background:${color}"></div>
+        <span class="${cls2}">${texto}</span>
+        <span class="cal-emp-name">${nombre}</span>
+      </div>`;
+    }).join("");
+
+    html += `<div class="${cls}">
+      <div class="cal-num">${fecha.getDate()}</div>
+      ${esMesActual ? empRows : ""}
+    </div>`;
+  }
+
+  document.getElementById("cal-grid").innerHTML = html;
 }
 </script>
 </body>
