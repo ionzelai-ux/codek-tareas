@@ -365,8 +365,11 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 /* ── CALENDARIO ── */
 .cal-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .cal-mes-label { font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blanco); min-width: 180px; text-align: center; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr) 80px; gap: 2px; }
 .cal-dow { padding: 8px 4px; text-align: center; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gris-texto); }
+.cal-dow-total { color: var(--granate); }
+.cal-total-semana { background: rgba(151,39,46,0.08) !important; border-color: rgba(151,39,46,0.3) !important; cursor: default !important; }
+.cal-total-semana:hover { background: rgba(151,39,46,0.12) !important; border-color: rgba(151,39,46,0.4) !important; }
 .cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 8px; min-height: 80px; position: relative; transition: border-color 0.15s; }
 .cal-day:hover { border-color: var(--granate); background: rgba(151,39,46,0.08); }
 .cal-day.otro-mes { background: var(--gris-oscuro); opacity: 0.4; }
@@ -847,7 +850,7 @@ function renderInforme() {
 }
 // ── CALENDARIO ───────────────────────────────────────────────────
 let calAnio = new Date().getFullYear();
-let calMes  = new Date().getMonth(); // 0-indexed
+let calMes  = new Date().getMonth();
 
 function cambiarMes(delta) {
   calMes += delta;
@@ -861,65 +864,84 @@ function renderCalendario() {
   const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   document.getElementById("cal-mes-label").textContent = MESES[calMes] + " " + calAnio;
 
-  // Primer y último día del mes
-  const primerDia = new Date(calAnio, calMes, 1);
-  const ultimoDia = new Date(calAnio, calMes + 1, 0);
-
-  // Día de la semana del primer día (0=Dom → ajustamos a Lunes=0)
+  const primerDia   = new Date(calAnio, calMes, 1);
+  const ultimoDia   = new Date(calAnio, calMes + 1, 0);
   const offsetInicio = (primerDia.getDay() + 6) % 7;
+  const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
+  const numSemanas   = totalCeldas / 7;
 
-  // Días totales a renderizar (incluyendo huecos del mes anterior y siguiente)
-  const totalCeldas = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
+  // Cabecera: 7 días + columna TOTAL
+  let html = ["L","M","X","J","V","S","D"].map(d =>
+    `<div class="cal-dow">${d}</div>`
+  ).join("") + `<div class="cal-dow cal-dow-total">Total</div>`;
 
-  const DIAS = ["L","M","X","J","V","S","D"];
-  let html = DIAS.map(d => `<div class="cal-dow">${d}</div>`).join("");
+  for (let sem = 0; sem < numSemanas; sem++) {
+    let totalDiego = 0;
+    let totalJesus = 0;
+    let semHtml = "";
 
-  for (let i = 0; i < totalCeldas; i++) {
-    const offset = i - offsetInicio;
-    const fecha = new Date(calAnio, calMes, 1 + offset);
-    const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
-    const esMesActual = fecha.getMonth() === calMes;
-    const esHoy = fechaStr === hoyStr;
-    const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+    for (let dow = 0; dow < 7; dow++) {
+      const offset = (sem * 7 + dow) - offsetInicio;
+      const fecha   = new Date(calAnio, calMes, 1 + offset);
+      const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
+      const esMesActual = fecha.getMonth() === calMes;
+      const esHoy       = fechaStr === hoyStr;
+      const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
 
-    let cls = "cal-day";
-    if (!esMesActual) cls += " otro-mes";
-    if (esHoy)        cls += " hoy";
-    if (esFinSemana)  cls += " fin-semana";
+      const hDiego = horasDelDia("Diego", fechaStr);
+      const hJesus = horasDelDia("Jesus", fechaStr);
+      totalDiego += hDiego;
+      totalJesus += hJesus;
 
-    // Horas de cada empleado ese día
-    const empRows = ["Diego","Jesus"].map(emp => {
-      const h = horasDelDia(emp, fechaStr);
-      const nombre = emp === "Jesus" ? "Jesús" : "Diego";
-      const color = emp === "Diego" ? "#97272E" : "#1565C0";
-      let cls2 = "cal-emp-hrs";
-      if (!esMesActual) {
-        cls2 += " vacio";
-      } else if (h === 0) {
-        cls2 += " vacio";
-      } else if (h >= OBJETIVO_DIA) {
-        cls2 += " ok";
-      } else if (h >= OBJETIVO_DIA * 0.5) {
-        cls2 += " warn";
-      } else {
-        cls2 += " bad";
-      }
-      const texto = h > 0 ? h+"h" : "—";
-      return `<div class="cal-emp-row">
-        <div class="cal-emp-dot" style="background:${color}"></div>
-        <span class="${cls2}">${texto}</span>
-        <span class="cal-emp-name">${nombre}</span>
+      let cls = "cal-day";
+      if (!esMesActual) cls += " otro-mes";
+      if (esHoy)        cls += " hoy";
+      if (esFinSemana)  cls += " fin-semana";
+
+      // Etiqueta del mes si es día de otro mes
+      const mesLabel = !esMesActual
+        ? `<span style="font-size:8px;color:#555;margin-left:3px">${MESES[fecha.getMonth()].substring(0,3)}</span>`
+        : "";
+
+      const empRows = [
+        { emp: "Diego", h: hDiego, color: "#97272E" },
+        { emp: "Jesús", h: hJesus, color: "#1565C0" }
+      ].map(({ emp, h, color }) => {
+        let c = "cal-emp-hrs " + (h === 0 ? "vacio" : h >= OBJETIVO_DIA ? "ok" : h >= OBJETIVO_DIA * 0.5 ? "warn" : "bad");
+        return `<div class="cal-emp-row">
+          <div class="cal-emp-dot" style="background:${color}"></div>
+          <span class="${c}">${h > 0 ? h+"h" : "—"}</span>
+          <span class="cal-emp-name">${emp}</span>
+        </div>`;
+      }).join("");
+
+      semHtml += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer">
+        <div class="cal-num">${fecha.getDate()}${mesLabel}</div>
+        ${empRows}
       </div>`;
-    }).join("");
+    }
 
-    html += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer">
-      <div class="cal-num">${fecha.getDate()}</div>
-      ${esMesActual ? empRows : ""}
+    // Columna total semanal
+    const cD = totalDiego >= OBJETIVO_SEMANA ? "ok" : totalDiego >= OBJETIVO_SEMANA * 0.7 ? "warn" : totalDiego > 0 ? "bad" : "vacio";
+    const cJ = totalJesus >= OBJETIVO_SEMANA ? "ok" : totalJesus >= OBJETIVO_SEMANA * 0.7 ? "warn" : totalJesus > 0 ? "bad" : "vacio";
+    semHtml += `<div class="cal-day cal-total-semana">
+      <div class="cal-num" style="color:var(--granate);font-size:9px">Sem</div>
+      <div class="cal-emp-row">
+        <div class="cal-emp-dot" style="background:#97272E"></div>
+        <span class="cal-emp-hrs ${cD}">${totalDiego > 0 ? totalDiego+"h" : "—"}</span>
+      </div>
+      <div class="cal-emp-row">
+        <div class="cal-emp-dot" style="background:#1565C0"></div>
+        <span class="cal-emp-hrs ${cJ}">${totalJesus > 0 ? totalJesus+"h" : "—"}</span>
+      </div>
     </div>`;
+
+    html += semHtml;
   }
 
   document.getElementById("cal-grid").innerHTML = html;
 }
+
 function abrirDia(fechaStr) {
   fechaActual = fechaStr;
   document.getElementById("fecha-picker").value = fechaStr;
