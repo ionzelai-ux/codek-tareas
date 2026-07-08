@@ -111,6 +111,7 @@ body { background: var(--negro); color: var(--blanco); font-family: "Inter", san
 .slot[data-labor="Repartir flyers"]          { background: rgba(85,139,47,0.18);  border-left: 3px solid #558B2F; }
 .slot[data-labor="Limpieza"]                 { background: rgba(78,52,46,0.25);   border-left: 3px solid #795548; }
 .slot[data-labor="Gestión Instagram"]        { background: rgba(173,20,87,0.18);  border-left: 3px solid #AD1457; }
+.slot[data-labor="Otros"]                    { background: rgba(84,110,122,0.18); border-left: 3px solid #546E7A; }
 
 /* Ajustar color de texto en slots con labor */
 .slot[data-labor] .slot-time { background: transparent; }
@@ -367,7 +368,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .cal-dow { padding: 8px 4px; text-align: center; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gris-texto); }
 .cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 8px; min-height: 80px; position: relative; transition: border-color 0.15s; }
-.cal-day:hover { border-color: #444; }
+.cal-day:hover { border-color: var(--granate); background: rgba(151,39,46,0.08); }
 .cal-day.otro-mes { background: var(--gris-oscuro); opacity: 0.4; }
 .cal-day.hoy { border-color: var(--granate); }
 .cal-day.fin-semana { background: #181818; }
@@ -397,10 +398,11 @@ const LABOR_COLORS = {
   "Llamadas":                   "#F9A825",
   "Repartir flyers":            "#558B2F",
   "Limpieza":                   "#795548",
-  "Gestión Instagram":          "#AD1457"
+  "Gestión Instagram":          "#AD1457",
+  "Otros":                      "#546E7A"
 };
 
-const LABORES = ["", ...Object.keys(LABOR_COLORS)];
+const LABORES = ["", ...Object.keys(LABOR_COLORS), "Otros"];
 
 const FRANJAS = [];
 for (let h = 7; h < 21; h++) {
@@ -546,7 +548,7 @@ function renderGrid() {
     const dataAttr = labor ? ` data-labor="${labor}"` : "";
 
     const opts = LABORES.map(l =>
-      `<option value="${l}"${l===labor?" selected":""}>${l||"— otra labor —"}</option>`
+      `<option value="${l}"${l===labor?" selected":""}>${l||"· sin actividad ·"}</option>`
     ).join("");
 
     html += `<div class="slot" id="slot-${franja}"${dataAttr}>`;
@@ -910,13 +912,20 @@ function renderCalendario() {
       </div>`;
     }).join("");
 
-    html += `<div class="${cls}">
+    html += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer">
       <div class="cal-num">${fecha.getDate()}</div>
       ${esMesActual ? empRows : ""}
     </div>`;
   }
 
   document.getElementById("cal-grid").innerHTML = html;
+}
+function abrirDia(fechaStr) {
+  fechaActual = fechaStr;
+  document.getElementById("fecha-picker").value = fechaStr;
+  showTab("registro");
+  renderGrid();
+  renderStats();
 }
 </script>
 </body>
