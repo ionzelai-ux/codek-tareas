@@ -949,12 +949,12 @@ function calcSaldo(emp, domingoKey, hoyStr) {
     if (dKey >= hoyStr) break;
     if (dKey > domingoKey) break;
     var hrs = 0, vac = 0;
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 7; i++) {  // todos los días, no solo L-V
       var dia = new Date(cur.getTime());
       dia.setDate(cur.getDate() + i);
       var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
       if (fk < FECHA_INICIO) continue;
-      if (esDiaVacaciones(emp, fk)) { vac++; }
+      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; } // vacaciones solo cuentan en días laborables
       else { hrs += horasDelDia(emp, fk); }
     }
     var obj = Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
@@ -1080,16 +1080,6 @@ function renderCalendario() {
 
     html += semHtml;
   }
-
-  // DEBUG - borrar después
-  var debugD = calcSaldo("Diego","2026-07-05",hoyStr);
-  var debugJ = calcSaldo("Jesus","2026-07-05",hoyStr);
-  var debugHrsJ = 0;
-  ["2026-06-29","2026-06-30","2026-07-01","2026-07-02","2026-07-03"].forEach(function(f){ debugHrsJ += horasDelDia("Jesus",f); });
-  console.log("DEBUG sem1: Jesus hrs="+debugHrsJ+" saldo="+debugJ+" | Diego saldo="+debugD);
-  console.log("DEBUG datos Jesus jun29:", datos["Jesus"] && datos["Jesus"]["2026-06-29"]);
-  console.log("DEBUG datos keys Jesus:", datos["Jesus"] ? Object.keys(datos["Jesus"]).sort().slice(0,5) : "SIN DATOS");
-  // FIN DEBUG
 
   document.getElementById("cal-grid").innerHTML = html;
 }
