@@ -954,30 +954,29 @@ function renderCalendario() {
   const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
   const numSemanas   = totalCeldas / 7;
 
-  // Cabecera
-  const INICIO_D  = new Date(FECHA_INICIO + "T12:00:00");
-  const LUNES_I   = new Date(INICIO_D);
-  LUNES_I.setDate(INICIO_D.getDate() - ((INICIO_D.getDay()+6)%7));
-  const LUNES_I_KEY = LUNES_I.getFullYear()+"-"+pad(LUNES_I.getMonth()+1)+"-"+pad(LUNES_I.getDate());
+  const INICIO_D    = new Date(FECHA_INICIO + "T12:00:00");
+  const LUNES_I_TS  = new Date(INICIO_D.getTime()); // copia inmutable
+  LUNES_I_TS.setDate(INICIO_D.getDate() - ((INICIO_D.getDay()+6)%7));
+  const LUNES_I_KEY = LUNES_I_TS.getFullYear()+"-"+pad(LUNES_I_TS.getMonth()+1)+"-"+pad(LUNES_I_TS.getDate());
 
   const calcSaldo = (emp, domingoKey) => {
     let saldo = HORAS_INICIALES[emp];
-    const cur = new Date(LUNES_I);
+    const cur = new Date(LUNES_I_TS.getTime()); // copia fresca cada llamada
     for (let guard = 0; guard < 60; guard++) {
       const lKey = cur.getFullYear()+"-"+pad(cur.getMonth()+1)+"-"+pad(cur.getDate());
-      const dom  = new Date(cur); dom.setDate(cur.getDate()+6);
+      const dom  = new Date(cur.getTime()); dom.setDate(cur.getDate()+6);
       const dKey = dom.getFullYear()+"-"+pad(dom.getMonth()+1)+"-"+pad(dom.getDate());
       if (dKey >= hoyStr || dKey > domingoKey) break;
       let hrs = 0, vac = 0;
       for (let i = 0; i < 5; i++) {
-        const f = new Date(cur); f.setDate(cur.getDate()+i);
+        const f = new Date(cur.getTime()); f.setDate(cur.getDate()+i);
         const fk = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
         if (fk < FECHA_INICIO) continue;
         if (esDiaVacaciones(emp, fk)) vac++;
         else hrs += horasDelDia(emp, fk);
       }
-      let obj = (lKey === LUNES_I_KEY)
-        ? Math.max(0, 5 * OBJETIVO_DIA - vac * OBJETIVO_DIA)  // semana inicio: 5 días completos
+      const obj = (lKey === LUNES_I_KEY)
+        ? Math.max(0, 5 * OBJETIVO_DIA - vac * OBJETIVO_DIA)
         : Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
       saldo = Math.max(0, saldo - (hrs - obj));
       cur.setDate(cur.getDate()+7);
@@ -1006,15 +1005,13 @@ function renderCalendario() {
     const lunesKey   = diasSemana[0].fechaStr;
     const semCerrada = domingoKey < hoyStr;
 
-    // Horas y vacaciones de la semana
+    // Horas totales de la semana (todos los días) y vacaciones laborables L-V
     let totD = 0, totJ = 0, vacD = 0, vacJ = 0;
     diasSemana.forEach(({fechaStr, dow}) => {
-      if (dow < 5) {
-        if (esDiaVacaciones("Diego", fechaStr)) vacD++;
-        else totD += horasDelDia("Diego", fechaStr);
-        if (esDiaVacaciones("Jesus", fechaStr)) vacJ++;
-        else totJ += horasDelDia("Jesus", fechaStr);
-      }
+      if (esDiaVacaciones("Diego", fechaStr)) { if (dow < 5) vacD++; }
+      else totD += horasDelDia("Diego", fechaStr);
+      if (esDiaVacaciones("Jesus", fechaStr)) { if (dow < 5) vacJ++; }
+      else totJ += horasDelDia("Jesus", fechaStr);
     });
 
     // Objetivo de esta semana para mostrar en pantalla
