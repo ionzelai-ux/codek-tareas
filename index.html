@@ -1017,9 +1017,8 @@ function renderCalendario() {
     });
 
     // Objetivo de esta semana para mostrar en pantalla
-    const esInicioSem = lunesKey === LUNES_I_KEY;
-    const objD = esInicioSem ? Math.max(0, 5*OBJETIVO_DIA - vacD*OBJETIVO_DIA) : Math.max(0, OBJETIVO_SEMANA - vacD*OBJETIVO_DIA);
-    const objJ = esInicioSem ? Math.max(0, 5*OBJETIVO_DIA - vacJ*OBJETIVO_DIA) : Math.max(0, OBJETIVO_SEMANA - vacJ*OBJETIVO_DIA);
+    const objD = Math.max(0, OBJETIVO_SEMANA - vacD*OBJETIVO_DIA);
+    const objJ = Math.max(0, OBJETIVO_SEMANA - vacJ*OBJETIVO_DIA);
     const balD = totD - objD;
     const balJ = totJ - objJ;
 
