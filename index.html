@@ -1081,6 +1081,16 @@ function renderCalendario() {
     html += semHtml;
   }
 
+  // DEBUG - borrar después
+  var debugD = calcSaldo("Diego","2026-07-05",hoyStr);
+  var debugJ = calcSaldo("Jesus","2026-07-05",hoyStr);
+  var debugHrsJ = 0;
+  ["2026-06-29","2026-06-30","2026-07-01","2026-07-02","2026-07-03"].forEach(function(f){ debugHrsJ += horasDelDia("Jesus",f); });
+  console.log("DEBUG sem1: Jesus hrs="+debugHrsJ+" saldo="+debugJ+" | Diego saldo="+debugD);
+  console.log("DEBUG datos Jesus jun29:", datos["Jesus"] && datos["Jesus"]["2026-06-29"]);
+  console.log("DEBUG datos keys Jesus:", datos["Jesus"] ? Object.keys(datos["Jesus"]).sort().slice(0,5) : "SIN DATOS");
+  // FIN DEBUG
+
   document.getElementById("cal-grid").innerHTML = html;
 }
 
