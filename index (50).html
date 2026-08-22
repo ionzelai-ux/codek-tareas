@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODEK — Control de Tareas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+:root {
+  --granate: #97272E; --granate-dark: #7a1f25;
+  --negro: #0A0A0A; --gris-oscuro: #141414; --gris-medio: #1E1E1E;
+  --gris-borde: #2A2A2A; --gris-texto: #777;
+  --blanco: #F5F5F5; --blanco-dim: #AAAAAA;
+  --verde: #4CAF50; --amarillo: #FFC107;
+
+  /* Colores por labor */
+  --c-clase:       #1565C0;
+  --c-preparar:    #6A1B9A;
+  --c-ep:          #00695C;
+  --c-prep-ep:     #2E7D32;
+  --c-video-g:     #E65100;
+  --c-video-e:     #BF360C;
+  --c-llamadas:    #F9A825;
+  --c-flyers:      #558B2F;
+  --c-limpieza:    #4E342E;
+  --c-instagram:   #AD1457;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--negro); color: var(--blanco); font-family: "Inter", sans-serif; min-height: 100vh; }
+
+.topbar { background: var(--gris-oscuro); border-bottom: 1px solid var(--gris-borde); padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.topbar-logo { height: 32px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.topbar-title { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--gris-texto); text-transform: uppercase; }
+.sync-indicator { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; border: 1px solid var(--gris-borde); color: var(--gris-texto); }
+.sync-indicator.ok { border-color: var(--verde); color: var(--verde); }
+.sync-indicator.err { border-color: var(--granate); color: var(--granate); }
+.sync-indicator.loading { border-color: var(--amarillo); color: var(--amarillo); }
+
+.tabs { display: flex; background: var(--gris-oscuro); border-bottom: 1px solid var(--gris-borde); padding: 0 28px; }
+.tab { padding: 13px 22px; font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; color: var(--gris-texto); border-bottom: 2px solid transparent; border-top: none; border-left: none; border-right: none; background: none; transition: all 0.15s; }
+.tab:hover { color: var(--blanco); }
+.tab.active { color: var(--granate); border-bottom-color: var(--granate); }
+
+.main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+.hidden { display: none !important; }
+
+.loader-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 999; }
+.loader-spinner { width: 36px; height: 36px; border: 3px solid var(--gris-borde); border-top-color: var(--granate); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loader-txt { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--gris-texto); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.controls { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.emp-btn { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 24px; border-radius: 3px; border: 1px solid var(--gris-borde); background: var(--gris-medio); color: var(--blanco-dim); cursor: pointer; transition: all 0.15s; }
+.emp-btn:hover { border-color: var(--granate); color: var(--blanco); }
+.emp-btn.active { background: var(--granate); border-color: var(--granate); color: #fff; }
+.date-wrap { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.date-wrap label { font-size: 10px; color: var(--gris-texto); font-family: "Space Mono", monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.date-wrap input[type="date"] { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 3px; color: var(--blanco); font-family: "Space Mono", monospace; font-size: 11px; padding: 7px 12px; }
+.date-nav-btn { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 3px; color: var(--blanco-dim); font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+.date-nav-btn:hover { border-color: var(--granate); color: var(--blanco); background: rgba(151,39,46,0.1); }
+
+.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 16px 20px; }
+.stat-label { font-size: 9px; font-family: "Space Mono", monospace; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gris-texto); margin-bottom: 8px; }
+.stat-value { font-family: "Space Mono", monospace; font-size: 24px; font-weight: 700; }
+.stat-value.ok { color: var(--verde); }
+.stat-value.warn { color: var(--amarillo); }
+.stat-value.bad { color: var(--granate); }
+.stat-sub { font-size: 10px; color: var(--gris-texto); margin-top: 4px; }
+
+.sched-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.section-label { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-texto); }
+
+/* ── LEYENDA ── */
+.leyenda { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--blanco-dim); }
+.leyenda-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── GRID ── */
+.grid { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+
+.slot { display: grid; grid-template-columns: 72px 44px 1fr 1fr; border-bottom: 1px solid var(--gris-borde); min-height: 48px; align-items: stretch; transition: background 0.2s; }
+.slot:last-child { border-bottom: none; }
+
+.slot-time { padding: 0 12px; display: flex; align-items: center; font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); border-right: 1px solid var(--gris-borde); background: var(--gris-oscuro); }
+
+/* Botón rápido "Clase" */
+.slot-clase-btn { border: none; border-right: 1px solid var(--gris-borde); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; color: var(--gris-borde); font-size: 16px; }
+.slot-clase-btn:hover { background: rgba(21,101,192,0.25); color: #90CAF9; }
+.slot-clase-btn.activo { background: rgba(21,101,192,0.35); color: #90CAF9; }
+.slot-clase-btn title { display: none; }
+
+.slot-select { background: transparent; border: none; border-right: 1px solid var(--gris-borde); color: var(--blanco-dim); font-family: "Inter", sans-serif; font-size: 12px; cursor: pointer; padding: 0 12px; width: 100%; appearance: none; -webkit-appearance: none; }
+.slot-select:focus { outline: none; }
+.slot-select option { background: #1E1E1E; }
+.slot-select.filled { color: var(--blanco); font-weight: 500; }
+
+.slot-comment { background: transparent; border: none; color: var(--gris-texto); font-family: "Inter", sans-serif; font-size: 11px; padding: 12px; resize: none; width: 100%; height: 48px; }
+.slot-comment:focus { outline: none; color: var(--blanco); }
+.slot-comment::placeholder { color: #333; }
+
+/* Colores de fondo por labor */
+.slot[data-labor="Impartir clase"]           { background: rgba(21,101,192,0.18); border-left: 3px solid #1565C0; }
+.slot[data-labor="Preparar clase"]           { background: rgba(106,27,154,0.18); border-left: 3px solid #6A1B9A; }
+.slot[data-labor="Entrenamiento personal"]   { background: rgba(0,105,92,0.18);   border-left: 3px solid #00695C; }
+.slot[data-labor="Preparar EP personalizado"]{ background: rgba(46,125,50,0.18);  border-left: 3px solid #2E7D32; }
+.slot[data-labor="Grabar vídeo"]             { background: rgba(230,81,0,0.18);   border-left: 3px solid #E65100; }
+.slot[data-labor="Editar vídeo"]             { background: rgba(191,54,12,0.18);  border-left: 3px solid #BF360C; }
+.slot[data-labor="Llamadas"]                 { background: rgba(249,168,37,0.15); border-left: 3px solid #F9A825; }
+.slot[data-labor="Repartir flyers"]          { background: rgba(85,139,47,0.18);  border-left: 3px solid #558B2F; }
+.slot[data-labor="Limpieza"]                 { background: rgba(78,52,46,0.25);   border-left: 3px solid #795548; }
+.slot[data-labor="Gestión Instagram"]        { background: rgba(173,20,87,0.18);  border-left: 3px solid #AD1457; }
+.slot[data-labor="Otros"]                    { background: rgba(84,110,122,0.18); border-left: 3px solid #546E7A; }
+
+/* Ajustar color de texto en slots con labor */
+.slot[data-labor] .slot-time { background: transparent; }
+.slot[data-labor] .slot-select { color: var(--blanco); font-weight: 500; }
+.slot[data-labor] .slot-comment { color: var(--blanco-dim); }
+.slot[data-labor] .slot-comment::placeholder { color: rgba(255,255,255,0.2); }
+
+.save-bar { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 20px; }
+.save-msg { font-size: 11px; color: var(--verde); font-family: "Space Mono", monospace; opacity: 0; transition: opacity 0.3s; }
+.save-msg.show { opacity: 1; }
+.btn-save { background: var(--granate); border: none; color: #fff; font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 11px 28px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+.btn-save:hover { background: var(--granate-dark); }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* RESUMEN */
+.resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.r-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+.r-card-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); display: flex; align-items: center; gap: 10px; }
+.r-card-title { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+.inicial-badge { margin-left: auto; background: rgba(151,39,46,0.15); border: 1px solid var(--granate); color: var(--granate); font-family: "Space Mono", monospace; font-size: 9px; padding: 3px 8px; border-radius: 2px; }
+table.wtable { width: 100%; border-collapse: collapse; }
+table.wtable th { padding: 9px 16px; text-align: left; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gris-texto); border-bottom: 1px solid var(--gris-borde); background: rgba(0,0,0,0.2); }
+table.wtable td { padding: 9px 16px; font-size: 12px; border-bottom: 1px solid rgba(42,42,42,0.4); color: var(--blanco-dim); }
+table.wtable tr:last-child td { border-bottom: none; }
+td.ok { color: var(--verde) !important; font-family: "Space Mono", monospace; }
+td.bad { color: var(--granate) !important; font-family: "Space Mono", monospace; }
+td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospace; }
+.prog-wrap { padding: 14px 18px; }
+.prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--gris-texto); font-family: "Space Mono", monospace; margin-bottom: 6px; }
+.prog-bg { height: 5px; background: var(--gris-borde); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; background: var(--granate); transition: width 0.5s ease; }
+.prog-fill.ok { background: var(--verde); }
+.total-row { padding: 13px 18px; border-top: 1px solid var(--gris-borde); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
+.total-label { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gris-texto); }
+.total-val { font-family: "Space Mono", monospace; font-size: 18px; font-weight: 700; }
+.comp-sec { margin-top: 22px; background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+.comp-sec-head { padding: 13px 18px; background: var(--gris-oscuro); border-bottom: 1px solid var(--gris-borde); font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-texto); }
+.comp-emp-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid rgba(42,42,42,0.4); }
+.comp-emp-row:last-child { border-bottom: none; }
+.comp-emp-name { font-size: 14px; font-weight: 500; }
+.comp-emp-detail { text-align: right; }
+.comp-inicial { font-family: "Space Mono", monospace; font-size: 10px; color: var(--gris-texto); margin-bottom: 3px; }
+.comp-valor { font-family: "Space Mono", monospace; font-size: 18px; font-weight: 700; color: var(--granate); }
+.comp-valor.ok { color: var(--verde); }
+
+/* INFORME */
+.informe-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.period-btn { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 18px; border-radius: 3px; border: 1px solid var(--gris-borde); background: var(--gris-medio); color: var(--blanco-dim); cursor: pointer; transition: all 0.15s; }
+.period-btn:hover { border-color: var(--granate); color: var(--blanco); }
+.period-btn.active { background: var(--granate); border-color: var(--granate); color: #fff; }
+.range-wrap { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.range-wrap label { font-size: 10px; color: var(--gris-texto); font-family: "Space Mono", monospace; text-transform: uppercase; }
+.range-wrap input[type="date"] { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 3px; color: var(--blanco); font-family: "Space Mono", monospace; font-size: 11px; padding: 6px 10px; }
+.range-sep { color: var(--gris-texto); }
+.inf-emp-filter { display: flex; gap: 8px; }
+.inf-emp-btn { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 16px; border-radius: 3px; border: 1px solid var(--gris-borde); background: transparent; color: var(--blanco-dim); cursor: pointer; transition: all 0.15s; }
+.inf-emp-btn:hover { border-color: var(--granate); color: var(--blanco); }
+.inf-emp-btn.active { border-color: var(--granate); color: var(--granate); background: rgba(151,39,46,0.1); }
+.informe-body { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.inf-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+.inf-card-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); display: flex; align-items: center; justify-content: space-between; }
+.inf-card-title { font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+.inf-card-total { font-family: "Space Mono", monospace; font-size: 13px; color: var(--granate); }
+.inf-labor-row { display: flex; align-items: center; gap: 12px; padding: 9px 18px; border-bottom: 1px solid rgba(42,42,42,0.4); }
+.inf-labor-row:last-child { border-bottom: none; }
+.inf-labor-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.inf-labor-name { font-size: 12px; color: var(--blanco-dim); flex: 1; }
+.inf-labor-bar-wrap { width: 100px; height: 4px; background: var(--gris-borde); border-radius: 2px; overflow: hidden; }
+.inf-labor-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+.inf-labor-hrs { font-family: "Space Mono", monospace; font-size: 12px; color: var(--blanco); min-width: 36px; text-align: right; }
+.inf-empty { padding: 20px 18px; font-size: 12px; color: var(--gris-texto); }
+.inf-combined { margin-top: 22px; background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+.inf-combined-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-texto); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--gris-oscuro); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="loader-overlay" id="loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-txt">Cargando datos...</div>
+</div>
+
+<div class="topbar">
+  <img class="topbar-logo" src="logo.png" alt="CODEK Training">
+  <div class="topbar-right">
+    <span class="topbar-title">Control de Tareas</span>
+    <span class="sync-indicator" id="sync-indicator">Sincronizando...</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('registro')">Registro diario</button>
+  <button class="tab" onclick="showTab('resumen')">Resumen</button>
+  <button class="tab" onclick="showTab('informe')">Informe de tareas</button>
+  <button class="tab" onclick="showTab('calendario')">Calendario</button>
+</div>
+
+<div class="main">
+
+  <!-- TAB REGISTRO -->
+  <div id="tab-registro">
+    <div class="controls">
+      <button class="emp-btn active" onclick="setEmpleado('Diego')" id="btn-Diego">Diego</button>
+      <button class="emp-btn" onclick="setEmpleado('Jesus')" id="btn-Jesus">Jesús</button>
+      <div class="date-wrap">
+        <label>Fecha</label>
+        <button class="date-nav-btn" onclick="cambiarDia(-1)" title="Día anterior">‹</button>
+        <input type="date" id="fecha-picker" onchange="onFechaChange()">
+        <button class="date-nav-btn" onclick="cambiarDia(1)" title="Día siguiente">›</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-label">Horas hoy</div>
+        <div class="stat-value" id="stat-hoy">0h</div>
+        <div class="stat-sub">de 6h objetivo</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Horas semana</div>
+        <div class="stat-value" id="stat-semana">0h</div>
+        <div class="stat-sub">semana actual</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Horas totales</div>
+        <div class="stat-value ok" id="stat-total">0h</div>
+        <div class="stat-sub">acumulado</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">A compensar</div>
+        <div class="stat-value" id="stat-comp">0h</div>
+        <div class="stat-sub" id="stat-comp-sub">pendiente</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Vacaciones</div>
+        <div class="stat-value ok" id="stat-vac">0</div>
+        <div class="stat-sub" id="stat-vac-sub">días disfrutados</div>
+      </div>
+    </div>
+
+    <div class="sched-header">
+      <span class="section-label" id="sched-titulo">Franjas horarias — Diego</span>
+      <button class="btn-vacaciones" id="btn-vacaciones" onclick="toggleVacaciones()">☀ Marcar como vacaciones</button>
+    </div>
+
+    <!-- LEYENDA -->
+    <div class="leyenda" id="leyenda"></div>
+
+    <!-- BANNER VACACIONES (visible solo cuando el día es vacaciones) -->
+    <div id="vacaciones-banner" class="hidden">
+      <div class="vac-banner">
+        <span class="vac-icon">☀</span>
+        <span class="vac-txt">Día de vacaciones</span>
+        <button class="vac-quitar" onclick="toggleVacaciones()">Quitar vacaciones</button>
+      </div>
+    </div>
+
+    <div class="grid" id="grid-slots"></div>
+
+    <div class="save-bar">
+      <span class="save-msg" id="save-msg">Guardado en Sheets ✓</span>
+      <button class="btn-save" id="btn-guardar" onclick="guardar()">Guardar día</button>
+    </div>
+  </div>
+
+  <!-- TAB RESUMEN -->
+  <div id="tab-resumen" class="hidden">
+    <div class="resumen-grid">
+      <div class="r-card">
+        <div class="r-card-head">
+          <span class="r-card-title">Diego</span>
+          <span class="inicial-badge">Inicial: 3h a compensar</span>
+        </div>
+        <table class="wtable">
+          <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
+          <tbody id="tabla-diego"></tbody>
+        </table>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Progreso semanal</span><span id="prog-diego-txt">0 / 30h</span></div>
+          <div class="prog-bg"><div class="prog-fill" id="prog-diego" style="width:0%"></div></div>
+        </div>
+        <div class="total-row">
+          <span class="total-label">Horas a compensar</span>
+          <span class="total-val" id="total-diego">—</span>
+        </div>
+      </div>
+      <div class="r-card">
+        <div class="r-card-head">
+          <span class="r-card-title">Jesús</span>
+          <span class="inicial-badge">Inicial: 7h a compensar</span>
+        </div>
+        <table class="wtable">
+          <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
+          <tbody id="tabla-jesus"></tbody>
+        </table>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Progreso semanal</span><span id="prog-jesus-txt">0 / 30h</span></div>
+          <div class="prog-bg"><div class="prog-fill" id="prog-jesus" style="width:0%"></div></div>
+        </div>
+        <div class="total-row">
+          <span class="total-label">Horas a compensar</span>
+          <span class="total-val" id="total-jesus">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="comp-sec">
+      <div class="comp-sec-head">Horas a compensar — resumen global</div>
+      <div class="comp-emp-row">
+        <span class="comp-emp-name">Diego</span>
+        <div class="comp-emp-detail">
+          <div class="comp-inicial">Horas iniciales a compensar: 3h</div>
+          <div class="comp-valor" id="comp-total-diego">4h</div>
+        </div>
+      </div>
+      <div class="comp-emp-row">
+        <span class="comp-emp-name">Jesús</span>
+        <div class="comp-emp-detail">
+          <div class="comp-inicial">Horas iniciales a compensar: 7h</div>
+          <div class="comp-valor" id="comp-total-jesus">8h</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB INFORME -->
+  <div id="tab-informe" class="hidden">
+    <div class="informe-controls">
+      <div class="inf-emp-filter">
+        <button class="inf-emp-btn active" onclick="setInfEmp('ambos')" id="inf-btn-ambos">Ambos</button>
+        <button class="inf-emp-btn" onclick="setInfEmp('Diego')" id="inf-btn-Diego">Diego</button>
+        <button class="inf-emp-btn" onclick="setInfEmp('Jesus')" id="inf-btn-Jesus">Jesús</button>
+      </div>
+      <button class="period-btn active" onclick="setPeriodo('semana')" id="pbtn-semana">Esta semana</button>
+      <button class="period-btn" onclick="setPeriodo('mes')" id="pbtn-mes">Este mes</button>
+      <button class="period-btn" onclick="setPeriodo('custom')" id="pbtn-custom">Personalizado</button>
+      <div class="range-wrap" id="range-custom" style="display:none">
+        <label>De</label>
+        <input type="date" id="inf-desde">
+        <span class="range-sep">—</span>
+        <label>hasta</label>
+        <input type="date" id="inf-hasta">
+        <button class="btn-save" style="padding:7px 16px;font-size:9px" onclick="renderInforme()">Aplicar</button>
+      </div>
+    </div>
+    <div class="informe-body" id="informe-body"></div>
+    <div class="inf-combined" id="inf-combined"></div>
+  </div>
+
+  <!-- TAB CALENDARIO -->
+  <div id="tab-calendario" class="hidden">
+    <div class="cal-controls">
+      <button class="date-nav-btn" onclick="cambiarMes(-1)">‹</button>
+      <span class="cal-mes-label" id="cal-mes-label"></span>
+      <button class="date-nav-btn" onclick="cambiarMes(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+</div>
+
+<style>
+/* ── CALENDARIO ── */
+.cal-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.cal-mes-label { font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blanco); min-width: 180px; text-align: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr) 200px; gap: 2px; }
+.cal-dow { padding: 8px 4px; text-align: center; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gris-texto); }
+.cal-dow-total { color: var(--granate); }.cal-total-semana { background: rgba(151,39,46,0.08) !important; border-color: rgba(151,39,46,0.3) !important; cursor: default !important; }
+
+/* ── VACACIONES ── */
+.btn-vacaciones { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 16px; border-radius: 3px; border: 1px solid #B8860B; background: transparent; color: #F9A825; cursor: pointer; transition: all 0.15s; }
+.btn-vacaciones:hover { background: rgba(249,168,37,0.1); }
+.btn-vacaciones.activo { background: rgba(249,168,37,0.2); border-color: #F9A825; color: #FFD54F; }
+.vac-banner { display: flex; align-items: center; gap: 14px; background: rgba(249,168,37,0.12); border: 1px solid rgba(249,168,37,0.4); border-radius: 4px; padding: 14px 20px; margin-bottom: 14px; }
+.vac-icon { font-size: 22px; }
+.vac-txt { font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #F9A825; flex: 1; }
+.vac-quitar { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 12px; border-radius: 3px; border: 1px solid rgba(249,168,37,0.4); background: transparent; color: #F9A825; cursor: pointer; }
+.vac-quitar:hover { background: rgba(249,168,37,0.15); }
+.grid.dia-vacaciones { opacity: 0.3; pointer-events: none; }
+/* Vacaciones en calendario */
+.cal-day.vacaciones { background: rgba(249,168,37,0.1) !important; border-color: rgba(249,168,37,0.35) !important; }
+.cal-vac-label { font-family: "Space Mono", monospace; font-size: 9px; color: #F9A825; letter-spacing: 0.06em; }
+.cal-total-semana:hover { background: rgba(151,39,46,0.12) !important; border-color: rgba(151,39,46,0.4) !important; }
+.cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 8px; min-height: 80px; position: relative; transition: border-color 0.15s; }
+.cal-day:hover { border-color: var(--granate); background: rgba(151,39,46,0.08); }
+.cal-day.otro-mes { background: var(--gris-oscuro); opacity: 0.4; }
+.cal-day.hoy { border-color: var(--granate); }
+.cal-day.fin-semana { background: #181818; }
+.cal-num { font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); margin-bottom: 6px; }
+.cal-day.hoy .cal-num { color: var(--granate); font-weight: 700; }
+.cal-emp-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.cal-emp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cal-emp-hrs { font-family: "Space Mono", monospace; font-size: 10px; }
+.cal-emp-hrs.ok   { color: var(--verde); }
+.cal-emp-hrs.warn { color: var(--amarillo); }
+.cal-emp-hrs.bad  { color: var(--granate); }
+.cal-emp-hrs.vacio { color: #333; }
+.cal-emp-name { font-size: 9px; color: var(--gris-texto); }
+</style>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMBUYb-BLIbo9iE3aQbqF-1CHYrHKPGpxsFm_iEnads4DuZahwDM3pkdlI7-ck0dh0/exec";
+
+// Mapa labor → color
+const LABOR_COLORS = {
+  "Impartir clase":             "#1565C0",
+  "Preparar clase":             "#6A1B9A",
+  "Entrenamiento personal":     "#00695C",
+  "Preparar EP personalizado":  "#2E7D32",
+  "Grabar vídeo":               "#E65100",
+  "Editar vídeo":               "#BF360C",
+  "Llamadas":                   "#F9A825",
+  "Repartir flyers":            "#558B2F",
+  "Limpieza":                   "#795548",
+  "Gestión Instagram":          "#AD1457",
+  "Otros":                      "#546E7A"
+};
+
+const LABORES = ["", ...Object.keys(LABOR_COLORS), "Otros"];
+
+const FRANJAS = [];
+for (let h = 7; h < 21; h++) {
+  FRANJAS.push(pad(h) + ":00");
+  FRANJAS.push(pad(h) + ":30");
+}
+
+const HORAS_INICIALES = { Diego: 3, Jesus: 7 };
+const FECHA_INICIO = "2026-06-29"; // Fecha desde la que empieza a computar
+const OBJETIVO_DIA = 6;
+const OBJETIVO_SEMANA = 30;
+
+let empleadoActual = "Diego";
+let fechaActual = hoy();
+let datos = {};
+let infEmp = "ambos";
+let infPeriodo = "semana";
+
+// Vacaciones: { empleado: { "YYYY-MM-DD": true } }
+// Pre-cargamos los días anteriores a julio ya disfrutados
+let vacaciones = {
+  Diego: {},  // 1 día antes de julio (no tenemos fecha exacta, lo marcamos como contador inicial)
+  Jesus: {}   // 8 días antes de julio (mismo caso)
+};
+// Días previos al inicio del sistema (antes del 29 jun) — los guardamos como contador fijo
+const VAC_PREVIAS = { Diego: 1, Jesus: 8 };
+
+// ── INIT ─────────────────────────────────────────────────────────
+async function init() {
+  setSyncStatus("loading", "Sincronizando...");
+  renderLeyenda();
+  // Cargar vacaciones guardadas localmente
+  const vacGuardadas = localStorage.getItem("codek_vacaciones");
+  if (vacGuardadas) vacaciones = JSON.parse(vacGuardadas);
+  try {
+    const res = await fetch(SCRIPT_URL + "?accion=todos");
+    const json = await res.json();
+    if (json.ok) {
+      datos = json.datos || {};
+      setSyncStatus("ok", "Conectado · Sheets");
+    } else throw new Error(json.error);
+  } catch(err) {
+    setSyncStatus("err", "Sin conexión");
+    datos = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}");
+  }
+  document.getElementById("fecha-picker").value = fechaActual;
+  document.getElementById("loader").style.display = "none";
+  renderGrid();
+  renderStats();
+}
+init();
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function pad(n) { return String(n).padStart(2, "0"); }
+function hoy() {
+  const d = new Date();
+  return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+}
+
+// ── VACACIONES ───────────────────────────────────────────────────
+function esDiaVacaciones(emp, fecha) {
+  return !!(vacaciones[emp] && vacaciones[emp][fecha]);
+}
+
+function diasVacaciones(emp) {
+  const propios = vacaciones[emp] ? Object.keys(vacaciones[emp]).filter(f => vacaciones[emp][f]).length : 0;
+  return VAC_PREVIAS[emp] + propios;
+}
+
+function toggleVacaciones() {
+  const esVac = esDiaVacaciones(empleadoActual, fechaActual);
+  if (!vacaciones[empleadoActual]) vacaciones[empleadoActual] = {};
+  if (esVac) {
+    delete vacaciones[empleadoActual][fechaActual];
+  } else {
+    vacaciones[empleadoActual][fechaActual] = true;
+    // Limpiar franjas del día si se marca como vacaciones
+    if (datos[empleadoActual]) delete datos[empleadoActual][fechaActual];
+  }
+  localStorage.setItem("codek_vacaciones", JSON.stringify(vacaciones));
+  renderGrid();
+  renderStats();
+  // Autoguardar el día (vacío) en Sheets para limpiar registros
+  dispararAutoguardado();
+}
+
+function actualizarBannerVacaciones() {
+  const esVac = esDiaVacaciones(empleadoActual, fechaActual);
+  document.getElementById("vacaciones-banner").classList.toggle("hidden", !esVac);
+  document.getElementById("btn-vacaciones").classList.toggle("activo", esVac);
+  document.getElementById("btn-vacaciones").textContent = esVac ? "☀ Día de vacaciones ✓" : "☀ Marcar como vacaciones";
+  document.getElementById("grid-slots").classList.toggle("dia-vacaciones", esVac);
+}
+function setSyncStatus(e, t) {
+  const el = document.getElementById("sync-indicator");
+  el.textContent = t; el.className = "sync-indicator " + e;
+}
+function horasDelDia(emp, fecha) {
+  const d = datos[emp] && datos[emp][fecha] ? datos[emp][fecha] : {};
+  return Object.values(d).filter(v => v.labor).length * 0.5;
+}
+function horasSemana(emp, fechaRef) {
+  const d = new Date(fechaRef + "T12:00:00");
+  const lunes = new Date(d);
+  lunes.setDate(d.getDate() - ((d.getDay()+6)%7));
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const f = new Date(lunes); f.setDate(lunes.getDate()+i);
+    total += horasDelDia(emp, f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate()));
+  }
+  return total;
+}
+function horasTotal(emp) {
+  if (!datos[emp]) return 0;
+  return Object.keys(datos[emp]).reduce((t,f) => t + horasDelDia(emp,f), 0);
+}
+function horasACompensar(emp) {
+  if (!datos[emp] && !(vacaciones[emp] && Object.keys(vacaciones[emp]).length > 0)) return HORAS_INICIALES[emp];
+
+  const hoyStr = hoy();
+  let balance = 0;
+
+  const dInicio = new Date(FECHA_INICIO + "T12:00:00");
+  const lunesInicio = new Date(dInicio);
+  lunesInicio.setDate(dInicio.getDate() - ((dInicio.getDay()+6)%7));
+  const lunesInicioKey = lunesInicio.getFullYear()+"-"+pad(lunesInicio.getMonth()+1)+"-"+pad(lunesInicio.getDate());
+
+  const cursor = new Date(lunesInicio);
+  while (true) {
+    const lunesKey = cursor.getFullYear()+"-"+pad(cursor.getMonth()+1)+"-"+pad(cursor.getDate());
+    const domingo = new Date(cursor); domingo.setDate(cursor.getDate()+6);
+    const domingoKey = domingo.getFullYear()+"-"+pad(domingo.getMonth()+1)+"-"+pad(domingo.getDate());
+
+    if (domingoKey >= hoyStr) break;
+
+    let totalSemana = 0;
+    let diasVacLab = 0;
+    for (let i = 0; i < 5; i++) { // solo L-V (lunes=0 a viernes=4)
+      const f = new Date(cursor); f.setDate(cursor.getDate()+i);
+      const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
+      if (fKey < FECHA_INICIO) continue;
+      if (esDiaVacaciones(emp, fKey)) {
+        diasVacLab++; // vacaciones reduce el objetivo, no suma horas
+      } else {
+        totalSemana += horasDelDia(emp, fKey);
+      }
+    }
+
+    // Objetivo: 30h base, menos 6h por cada día de vacaciones, menos ajuste de semana de inicio
+    let objetivoSemana = OBJETIVO_SEMANA - (diasVacLab * OBJETIVO_DIA);
+    if (lunesKey === lunesInicioKey) {
+      const viernesInicio = new Date(lunesInicio); viernesInicio.setDate(lunesInicio.getDate()+4);
+      const diasDesdeInicio = Math.min(5, Math.floor((viernesInicio - dInicio) / 86400000) + 1);
+      objetivoSemana = (diasDesdeInicio * OBJETIVO_DIA) - (diasVacLab * OBJETIVO_DIA);
+    }
+    objetivoSemana = Math.max(0, objetivoSemana);
+
+    balance += (totalSemana - objetivoSemana);
+    cursor.setDate(cursor.getDate()+7);
+    if (lunesKey > hoyStr) break;
+  }
+
+  return Math.max(0, HORAS_INICIALES[emp] - balance);
+}
+
+// ── LEYENDA ──────────────────────────────────────────────────────
+function renderLeyenda() {
+  const el = document.getElementById("leyenda");
+  el.innerHTML = Object.entries(LABOR_COLORS).map(([l,c]) =>
+    `<div class="leyenda-item"><div class="leyenda-dot" style="background:${c}"></div>${l}</div>`
+  ).join("");
+}
+
+// ── RENDER GRID ──────────────────────────────────────────────────
+function renderGrid() {
+  const emp = empleadoActual;
+  const fecha = fechaActual;
+  const diaData = (datos[emp]&&datos[emp][fecha]) ? datos[emp][fecha] : {};
+  document.getElementById("sched-titulo").textContent = "Franjas horarias — " + emp;
+  actualizarBannerVacaciones();
+
+  let html = "";
+  FRANJAS.forEach(franja => {
+    const val = diaData[franja] || { labor:"", comentario:"" };
+    const labor = val.labor || "";
+    const esClase = labor === "Impartir clase";
+    const dataAttr = labor ? ` data-labor="${labor}"` : "";
+
+    const opts = LABORES.map(l =>
+      `<option value="${l}"${l===labor?" selected":""}>${l||"· sin actividad ·"}</option>`
+    ).join("");
+
+    html += `<div class="slot" id="slot-${franja}"${dataAttr}>`;
+    html += `<div class="slot-time">${franja}</div>`;
+    // Botón rápido clase
+    html += `<button class="slot-clase-btn${esClase?" activo":""}" onclick="toggleClase('${franja}')" title="Impartir clase">▶</button>`;
+    html += `<select class="slot-select${labor?" filled":""}" onchange="onLaborChange(this,'${franja}')">${opts}</select>`;
+    html += `<textarea class="slot-comment" placeholder="Comentario..." onchange="onCommentChange(this,'${franja}')">${val.comentario||""}</textarea>`;
+    html += `</div>`;
+  });
+  document.getElementById("grid-slots").innerHTML = html;
+}
+
+// ── TOGGLE RÁPIDO CLASE ──────────────────────────────────────────
+function toggleClase(franja) {
+  ensureDia();
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
+  const actual = datos[empleadoActual][fechaActual][franja].labor;
+  const nuevo = actual === "Impartir clase" ? "" : "Impartir clase";
+  datos[empleadoActual][fechaActual][franja].labor = nuevo;
+  actualizarSlot(franja, nuevo);
+  renderStats();
+  dispararAutoguardado();
+}
+
+// ── AUTOGUARDADO ─────────────────────────────────────────────────
+let autoguardTimer = null;
+
+function dispararAutoguardado() {
+  // Guarda localmente de inmediato (nunca se pierde nada)
+  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
+
+  // Muestra indicador "guardando..."
+  const msg = document.getElementById("save-msg");
+  msg.textContent = "Guardando...";
+  msg.style.color = "var(--amarillo)";
+  msg.classList.add("show");
+
+  // Cancela el timer anterior y arranca uno nuevo de 2 segundos
+  clearTimeout(autoguardTimer);
+  autoguardTimer = setTimeout(() => guardarSilencioso(), 2000);
+}
+
+async function guardarSilencioso() {
+  const msg = document.getElementById("save-msg");
+  const franjas = (datos[empleadoActual] && datos[empleadoActual][fechaActual])
+    ? datos[empleadoActual][fechaActual] : {};
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ empleado: empleadoActual, fecha: fechaActual, franjas })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      setSyncStatus("ok", "Guardado · Sheets");
+      msg.textContent = "Autoguardado ✓";
+      msg.style.color = "var(--verde)";
+    } else throw new Error(json.error);
+  } catch(err) {
+    setSyncStatus("err", "Error al guardar");
+    msg.textContent = "Solo guardado local";
+    msg.style.color = "var(--granate)";
+  }
+  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
+  setTimeout(() => msg.classList.remove("show"), 2500);
+}
+
+function onLaborChange(sel, franja) {
+  ensureDia();
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
+  datos[empleadoActual][fechaActual][franja].labor = sel.value;
+  actualizarSlot(franja, sel.value);
+  renderStats();
+  dispararAutoguardado();
+}
+
+function actualizarSlot(franja, labor) {
+  const slot = document.getElementById("slot-" + franja);
+  const btn = slot.querySelector(".slot-clase-btn");
+  const sel = slot.querySelector(".slot-select");
+  if (labor) {
+    slot.setAttribute("data-labor", labor);
+  } else {
+    slot.removeAttribute("data-labor");
+  }
+  sel.value = labor;
+  sel.classList.toggle("filled", !!labor);
+  btn.classList.toggle("activo", labor === "Impartir clase");
+}
+
+function onCommentChange(ta, franja) {
+  ensureDia();
+  if (!datos[empleadoActual][fechaActual][franja]) datos[empleadoActual][fechaActual][franja] = {labor:"",comentario:""};
+  datos[empleadoActual][fechaActual][franja].comentario = ta.value;
+  dispararAutoguardado();
+}
+
+function ensureDia() {
+  if (!datos[empleadoActual]) datos[empleadoActual] = {};
+  if (!datos[empleadoActual][fechaActual]) datos[empleadoActual][fechaActual] = {};
+}
+
+// ── STATS ────────────────────────────────────────────────────────
+function renderStats() {
+  const emp = empleadoActual;
+  const esVac = esDiaVacaciones(emp, fechaActual);
+  const hd = esVac ? 0 : horasDelDia(emp, fechaActual);
+  const hs = horasSemana(emp, fechaActual);
+  const comp = horasACompensar(emp);
+  const vac = diasVacaciones(emp);
+
+  const sh = document.getElementById("stat-hoy");
+  if (esVac) {
+    sh.textContent = "☀";
+    sh.className = "stat-value warn";
+    document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "vacaciones";
+  } else {
+    sh.textContent = hd+"h";
+    sh.className = "stat-value "+(hd>=OBJETIVO_DIA?"ok":hd>=OBJETIVO_DIA*.7?"warn":"bad");
+    document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "de 6h objetivo";
+  }
+
+  const ss = document.getElementById("stat-semana");
+  ss.textContent = hs+"h";
+  ss.className = "stat-value "+(hs>=OBJETIVO_SEMANA?"ok":hs>=OBJETIVO_SEMANA*.7?"warn":"bad");
+
+  document.getElementById("stat-total").textContent = horasTotal(emp)+"h";
+
+  const sc = document.getElementById("stat-comp");
+  sc.textContent = comp+"h";
+  sc.className = "stat-value "+(comp===0?"ok":"bad");
+  document.getElementById("stat-comp-sub").textContent = comp===0?"Al día ✓":"pendiente de compensar";
+
+  document.getElementById("stat-vac").textContent = vac;
+  document.getElementById("stat-vac-sub").textContent = vac === 1 ? "día disfrutado" : "días disfrutados";
+}
+
+// ── GUARDAR (botón manual) ────────────────────────────────────────
+async function guardar() {
+  // Cancela cualquier autoguardado pendiente (el manual tiene prioridad)
+  clearTimeout(autoguardTimer);
+
+  const btn = document.getElementById("btn-guardar");
+  const msg = document.getElementById("save-msg");
+  btn.disabled = true; btn.textContent = "Guardando...";
+  setSyncStatus("loading", "Guardando...");
+
+  const franjas = (datos[empleadoActual] && datos[empleadoActual][fechaActual])
+    ? datos[empleadoActual][fechaActual] : {};
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ empleado: empleadoActual, fecha: fechaActual, franjas })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      setSyncStatus("ok", "Guardado · Sheets");
+      msg.textContent = "Guardado en Sheets ✓";
+      msg.style.color = "var(--verde)";
+    } else throw new Error(json.error);
+  } catch(err) {
+    setSyncStatus("err", "Error al guardar");
+    msg.textContent = "Error — guardado solo local";
+    msg.style.color = "var(--granate)";
+  }
+  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
+  msg.classList.add("show");
+  setTimeout(() => msg.classList.remove("show"), 3000);
+  btn.disabled = false; btn.textContent = "Guardar día";
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function showTab(tab) {
+  ["registro","resumen","informe","calendario"].forEach(t =>
+    document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab));
+  document.querySelectorAll(".tab").forEach((t,i) =>
+    t.classList.toggle("active", ["registro","resumen","informe","calendario"][i]===tab));
+  if (tab==="resumen") renderResumen();
+  if (tab==="informe") renderInforme();
+  if (tab==="calendario") renderCalendario();
+}
+function setEmpleado(emp) {
+  empleadoActual = emp;
+  document.getElementById("btn-Diego").classList.toggle("active", emp==="Diego");
+  document.getElementById("btn-Jesus").classList.toggle("active", emp==="Jesus");
+  renderGrid(); renderStats();
+}
+function onFechaChange() {
+  fechaActual = document.getElementById("fecha-picker").value;
+  renderGrid(); renderStats();
+}
+function cambiarDia(delta) {
+  const d = new Date(fechaActual + "T12:00:00");
+  d.setDate(d.getDate() + delta);
+  fechaActual = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  document.getElementById("fecha-picker").value = fechaActual;
+  renderGrid(); renderStats();
+}
+
+// ── RESUMEN ──────────────────────────────────────────────────────
+function renderResumen() {
+  ["Diego","Jesus"].forEach(emp => {
+    const id = emp==="Jesus"?"jesus":"diego";
+    const dias = datos[emp] ? Object.keys(datos[emp]).sort().reverse().slice(0,7) : [];
+    let filas = "";
+    dias.forEach(f => {
+      const h = horasDelDia(emp,f);
+      if (!h) return;
+      const cls = h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.7?"warn":"bad";
+      filas += `<tr><td>${f.split("-").reverse().join("/")}</td><td class="${cls}">${h}h</td><td class="${cls}">${h>=OBJETIVO_DIA?"Completo":"Parcial"}</td></tr>`;
+    });
+    if (!filas) filas = `<tr><td colspan="3" style="color:var(--gris-texto);font-size:11px;padding:14px 16px">Sin registros aún</td></tr>`;
+    document.getElementById("tabla-"+id).innerHTML = filas;
+    const hs = horasSemana(emp, hoy());
+    const pct = Math.min(100,(hs/OBJETIVO_SEMANA)*100);
+    document.getElementById("prog-"+id+"-txt").textContent = hs+" / "+OBJETIVO_SEMANA+"h";
+    const fill = document.getElementById("prog-"+id);
+    fill.style.width = pct+"%"; fill.className = "prog-fill"+(pct>=100?" ok":"");
+    const comp = horasACompensar(emp);
+    document.getElementById("total-"+id).textContent = comp+"h";
+    document.getElementById("total-"+id).className = "total-val "+(comp===0?"ok":"bad");
+    document.getElementById("comp-total-"+id).textContent = comp+"h";
+    document.getElementById("comp-total-"+id).className = "comp-valor"+(comp===0?" ok":"");
+  });
+}
+
+// ── INFORME ──────────────────────────────────────────────────────
+function getRangoSemana() {
+  const d = new Date(hoy()+"T12:00:00"), l = new Date(d);
+  l.setDate(d.getDate()-((d.getDay()+6)%7));
+  const v = new Date(l); v.setDate(l.getDate()+6);
+  const fmt = x => x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate());
+  return { desde: fmt(l), hasta: fmt(v) };
+}
+function getRangoMes() {
+  const d = new Date();
+  const desde = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-01";
+  const u = new Date(d.getFullYear(),d.getMonth()+1,0);
+  return { desde, hasta: u.getFullYear()+"-"+pad(u.getMonth()+1)+"-"+pad(u.getDate()) };
+}
+function getRangoActual() {
+  if (infPeriodo==="semana") return getRangoSemana();
+  if (infPeriodo==="mes") return getRangoMes();
+  return { desde: document.getElementById("inf-desde").value||hoy(), hasta: document.getElementById("inf-hasta").value||hoy() };
+}
+function calcTareas(emp, desde, hasta) {
+  const r = {};
+  Object.keys(LABOR_COLORS).forEach(l => r[l]=0);
+  if (!datos[emp]) return r;
+  Object.keys(datos[emp]).forEach(f => {
+    if (f<desde||f>hasta) return;
+    Object.values(datos[emp][f]).forEach(v => { if(v.labor&&r[v.labor]!==undefined) r[v.labor]+=0.5; });
+  });
+  return r;
+}
+function setInfEmp(emp) {
+  infEmp = emp;
+  ["ambos","Diego","Jesus"].forEach(e => document.getElementById("inf-btn-"+e).classList.toggle("active",e===emp));
+  renderInforme();
+}
+function setPeriodo(p) {
+  infPeriodo = p;
+  ["semana","mes","custom"].forEach(x => document.getElementById("pbtn-"+x).classList.toggle("active",x===p));
+  document.getElementById("range-custom").style.display = p==="custom"?"flex":"none";
+  if (p!=="custom") renderInforme();
+}
+function renderInforme() {
+  const {desde,hasta} = getRangoActual();
+  const emps = infEmp==="ambos"?["Diego","Jesus"]:[infEmp];
+  const combinado = {}; Object.keys(LABOR_COLORS).forEach(l => combinado[l]=0);
+  let bodyHtml = "";
+
+  emps.forEach(emp => {
+    const tareas = calcTareas(emp,desde,hasta);
+    const total = Object.values(tareas).reduce((a,b)=>a+b,0);
+    Object.keys(tareas).forEach(l => combinado[l]+=tareas[l]);
+    const sorted = Object.entries(tareas).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
+    const maxH = sorted.length ? sorted[0][1] : 1;
+    const rows = sorted.length===0
+      ? `<div class="inf-empty">Sin registros en este período</div>`
+      : sorted.map(([l,h]) => {
+          const pct = Math.round((h/maxH)*100);
+          const color = LABOR_COLORS[l]||"#666";
+          return `<div class="inf-labor-row"><div class="inf-labor-dot" style="background:${color}"></div><span class="inf-labor-name">${l}</span><div class="inf-labor-bar-wrap"><div class="inf-labor-bar" style="width:${pct}%;background:${color}"></div></div><span class="inf-labor-hrs">${h}h</span></div>`;
+        }).join("");
+    bodyHtml += `<div class="inf-card"><div class="inf-card-head"><span class="inf-card-title">${emp}</span><span class="inf-card-total">${total}h total</span></div>${rows}</div>`;
+  });
+  document.getElementById("informe-body").innerHTML = bodyHtml;
+
+  const combEl = document.getElementById("inf-combined");
+  if (infEmp==="ambos") {
+    const sorted = Object.entries(combinado).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
+    const total = sorted.reduce((a,[,h])=>a+h,0);
+    const maxH = sorted.length ? sorted[0][1] : 1;
+    const df = desde.split("-").reverse().join("/"), hf = hasta.split("-").reverse().join("/");
+    const rows = sorted.length===0
+      ? `<div class="inf-empty">Sin registros en este período</div>`
+      : sorted.map(([l,h]) => {
+          const pct = Math.round((h/maxH)*100);
+          const color = LABOR_COLORS[l]||"#666";
+          return `<div class="inf-labor-row"><div class="inf-labor-dot" style="background:${color}"></div><span class="inf-labor-name">${l}</span><div class="inf-labor-bar-wrap"><div class="inf-labor-bar" style="width:${pct}%;background:${color}"></div></div><span class="inf-labor-hrs">${h}h</span></div>`;
+        }).join("");
+    combEl.innerHTML = `<div class="inf-combined-head">Total equipo — ${df} al ${hf} — ${total}h</div>${rows}`;
+    combEl.style.display = "block";
+  } else {
+    combEl.style.display = "none";
+  }
+}
+// ── CALENDARIO ───────────────────────────────────────────────────
+let calAnio = new Date().getFullYear();
+let calMes  = new Date().getMonth();
+
+function cambiarMes(delta) {
+  calMes += delta;
+  if (calMes > 11) { calMes = 0; calAnio++; }
+  if (calMes < 0)  { calMes = 11; calAnio--; }
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const hoyStr = hoy();
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  document.getElementById("cal-mes-label").textContent = MESES[calMes] + " " + calAnio;
+
+  const primerDia    = new Date(calAnio, calMes, 1);
+  const ultimoDia    = new Date(calAnio, calMes + 1, 0);
+  const offsetInicio = (primerDia.getDay() + 6) % 7;
+  const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
+  const numSemanas   = totalCeldas / 7;
+
+  // ── Pre-calcular saldo acumulado semana a semana desde FECHA_INICIO ──
+  // Para poder mostrar el saldo total al final de cada semana del calendario,
+  // recorremos desde el inicio hasta el domingo de cada semana visible.
+  function saldoAcumuladoHastaSemana(emp, domingoKey) {
+    // Saldo = horas iniciales a compensar + déficit acumulado de semanas cerradas hasta domingoKey
+    const inicioD = new Date(FECHA_INICIO + "T12:00:00");
+    const lunesI  = new Date(inicioD);
+    lunesI.setDate(inicioD.getDate() - ((inicioD.getDay()+6)%7));
+
+    let saldo = HORAS_INICIALES[emp];
+    const cur = new Date(lunesI);
+
+    while (true) {
+      const lKey = cur.getFullYear()+"-"+pad(cur.getMonth()+1)+"-"+pad(cur.getDate());
+      const dom  = new Date(cur); dom.setDate(cur.getDate()+6);
+      const dKey = dom.getFullYear()+"-"+pad(dom.getMonth()+1)+"-"+pad(dom.getDate());
+
+      // Solo semanas ya cerradas Y que no superen el domingo de referencia
+      if (dKey >= hoyStr || dKey > domingoKey) break;
+
+      // Horas trabajadas L-V de esta semana (vacaciones reducen objetivo)
+      let horasSem = 0, vacLab = 0;
+      for (let i = 0; i < 5; i++) {
+        const f = new Date(cur); f.setDate(cur.getDate()+i);
+        const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
+        if (fKey < FECHA_INICIO) continue;
+        if (esDiaVacaciones(emp, fKey)) vacLab++;
+        else horasSem += horasDelDia(emp, fKey);
+      }
+
+      // Objetivo ajustado
+      let obj = OBJETIVO_SEMANA - vacLab * OBJETIVO_DIA;
+      if (lKey === (lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate()))) {
+        const vierI = new Date(lunesI); vierI.setDate(lunesI.getDate()+4);
+        const dias  = Math.min(5, Math.floor((vierI - inicioD) / 86400000) + 1);
+        obj = Math.max(0, dias * OBJETIVO_DIA - vacLab * OBJETIVO_DIA);
+      }
+      obj = Math.max(0, obj);
+
+      // Balance: positivo = han trabajado más → reduce saldo; negativo → aumenta saldo
+      const bal = horasSem - obj;
+      saldo = Math.max(0, saldo - bal); // restar superávit (baja saldo), sumar déficit (sube saldo)
+
+      cur.setDate(cur.getDate()+7);
+      if (lKey > domingoKey) break;
+    }
+    return saldo;
+  }
+
+  // Cabecera
+  let html = ["L","M","X","J","V","S","D"].map(d =>
+    `<div class="cal-dow">${d}</div>`
+  ).join("") + `<div class="cal-dow cal-dow-total">Resumen semana</div>`;
+
+  for (let sem = 0; sem < numSemanas; sem++) {
+    let totalDiego = 0, totalJesus = 0;
+    let semHtml = "";
+    const diasSemana = [];
+
+    for (let dow = 0; dow < 7; dow++) {
+      const offset = (sem * 7 + dow) - offsetInicio;
+      const fecha = new Date(calAnio, calMes, 1 + offset);
+      const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
+      diasSemana.push({ fecha, fechaStr, dow });
+    }
+
+    // Domingo de esta semana
+    const domSem = diasSemana[6];
+    const domingoKey = domSem.fechaStr;
+
+    // Totales y vacaciones de la semana
+    diasSemana.forEach(({ fechaStr }) => {
+      if (esDiaVacaciones("Diego", fechaStr)) {} // no suma
+      else totalDiego += horasDelDia("Diego", fechaStr);
+      if (esDiaVacaciones("Jesus", fechaStr)) {}
+      else totalJesus += horasDelDia("Jesus", fechaStr);
+    });
+
+    // Vacaciones laborables (L-V)
+    const vacLabDiego = diasSemana.filter(({fechaStr,dow}) => dow < 5 && esDiaVacaciones("Diego", fechaStr)).length;
+    const vacLabJesus = diasSemana.filter(({fechaStr,dow}) => dow < 5 && esDiaVacaciones("Jesus", fechaStr)).length;
+
+    // Objetivo ajustado de esta semana concreta
+    const lunesI = new Date(new Date(FECHA_INICIO+"T12:00:00"));
+    lunesI.setDate(lunesI.getDate() - ((lunesI.getDay()+6)%7));
+    const lunesIKey = lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate());
+    const lunesEstaSem = diasSemana[0].fechaStr;
+
+    let objDiego = OBJETIVO_SEMANA - vacLabDiego * OBJETIVO_DIA;
+    let objJesus = OBJETIVO_SEMANA - vacLabJesus * OBJETIVO_DIA;
+    if (lunesEstaSem === lunesIKey) {
+      const inicioD = new Date(FECHA_INICIO+"T12:00:00");
+      const vierI   = new Date(lunesI); vierI.setDate(lunesI.getDate()+4);
+      const dias    = Math.min(5, Math.floor((vierI - inicioD) / 86400000) + 1);
+      objDiego = Math.max(0, dias * OBJETIVO_DIA - vacLabDiego * OBJETIVO_DIA);
+      objJesus = Math.max(0, dias * OBJETIVO_DIA - vacLabJesus * OBJETIVO_DIA);
+    }
+    objDiego = Math.max(0, objDiego);
+    objJesus = Math.max(0, objJesus);
+
+    // Balance de esta semana
+    const balDiego = totalDiego - objDiego;
+    const balJesus = totalJesus - objJesus;
+
+    // Saldo acumulado al cierre de esta semana
+    const saldoDiego = domingoKey < hoyStr ? saldoAcumuladoHastaSemana("Diego", domingoKey) : null;
+    const saldoJesus = domingoKey < hoyStr ? saldoAcumuladoHastaSemana("Jesus", domingoKey) : null;
+
+    // Renderizar días
+    diasSemana.forEach(({ fecha, fechaStr, dow }) => {
+      const esMesActual = fecha.getMonth() === calMes;
+      const esHoy       = fechaStr === hoyStr;
+      const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+      const hDiego = horasDelDia("Diego", fechaStr);
+      const hJesus = horasDelDia("Jesus", fechaStr);
+
+      let cls = "cal-day";
+      if (!esMesActual) cls += " otro-mes";
+      if (esHoy)        cls += " hoy";
+      if (esFinSemana)  cls += " fin-semana";
+      if (esDiaVacaciones("Diego", fechaStr) || esDiaVacaciones("Jesus", fechaStr)) cls += " vacaciones";
+
+      const mesLabel = !esMesActual
+        ? `<span style="font-size:8px;color:#555;margin-left:3px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
+
+      const empRows = [
+        { emp: "Diego", empKey: "Diego", h: hDiego, color: "#97272E" },
+        { emp: "Jesús", empKey: "Jesus", h: hJesus, color: "#1565C0" }
+      ].map(({ emp, empKey, h, color }) => {
+        if (esDiaVacaciones(empKey, fechaStr)) {
+          return `<div class="cal-emp-row"><div class="cal-emp-dot" style="background:${color}"></div><span class="cal-vac-label">☀ vac</span></div>`;
+        }
+        const c = "cal-emp-hrs "+(h===0?"vacio":h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*0.5?"warn":"bad");
+        return `<div class="cal-emp-row"><div class="cal-emp-dot" style="background:${color}"></div><span class="${c}">${h>0?h+"h":"—"}</span><span class="cal-emp-name">${emp}</span></div>`;
+      }).join("");
+
+      semHtml += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer">
+        <div class="cal-num">${fecha.getDate()}${mesLabel}</div>${empRows}</div>`;
+    });
+
+    // ── Columna resumen semanal ──
+    function lineaEmp(nombre, color, total, obj, bal, saldo, semCerrada) {
+      const cHrs = total >= obj ? "ok" : total >= obj*0.7 ? "warn" : total > 0 ? "bad" : "vacio";
+      const balTxt = bal >= 0
+        ? `<span style="color:var(--verde)">−${bal}h</span>`   // han hecho más → compensan
+        : `<span style="color:var(--granate)">+${Math.abs(bal)}h</span>`; // han hecho menos → deben
+      const saldoTxt = saldo !== null
+        ? `<span style="color:${saldo===0?"var(--verde)":"var(--granate)"}"><b>${saldo}h</b></span>`
+        : `<span style="color:var(--gris-texto)">en curso</span>`;
+
+      return `
+        <div style="margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+            <div style="width:7px;height:7px;border-radius:50%;background:${color}"></div>
+            <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--blanco)">${nombre}</span>
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:10px;padding-left:12px;line-height:1.7">
+            <div><span style="color:var(--gris-texto)">Horas: </span><span class="cal-emp-hrs ${cHrs}">${total}h / ${obj}h</span></div>
+            <div><span style="color:var(--gris-texto)">Semana: </span>${semCerrada ? balTxt : '<span style="color:var(--gris-texto)">en curso</span>'}</div>
+            <div><span style="color:var(--gris-texto)">Saldo: </span>${saldoTxt}</div>
+          </div>
+        </div>`;
+    }
+
+    const semCerrada = domingoKey < hoyStr;
+    semHtml += `<div class="cal-day cal-total-semana" style="padding:10px 12px;min-height:80px">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--granate);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Resumen</div>
+      ${lineaEmp("Diego","#97272E",totalDiego,objDiego,balDiego,saldoDiego,semCerrada)}
+      ${lineaEmp("Jesús","#1565C0",totalJesus,objJesus,balJesus,saldoJesus,semCerrada).replace(/border-bottom[^;]+;/,"")}
+    </div>`;
+
+    html += semHtml;
+  }
+
+  document.getElementById("cal-grid").innerHTML = html;
+}
+
+function abrirDia(fechaStr) {
+  fechaActual = fechaStr;
+  document.getElementById("fecha-picker").value = fechaStr;
+  showTab("registro");
+  renderGrid();
+  renderStats();
+}
+</script>
+</body>
+</html>
