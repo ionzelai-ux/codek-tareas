@@ -398,20 +398,20 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .cal-day.vacaciones { background: rgba(249,168,37,0.1) !important; border-color: rgba(249,168,37,0.35) !important; }
 .cal-vac-label { font-family: "Space Mono", monospace; font-size: 9px; color: #F9A825; letter-spacing: 0.06em; }
 .cal-total-semana:hover { background: rgba(151,39,46,0.12) !important; border-color: rgba(151,39,46,0.4) !important; }
-.cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 8px; min-height: 80px; position: relative; transition: border-color 0.15s; }
+.cal-day { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 6px 8px; min-height: 0; position: relative; transition: border-color 0.15s; }
 .cal-day:hover { border-color: var(--granate); background: rgba(151,39,46,0.08); }
 .cal-day.otro-mes { background: var(--gris-oscuro); opacity: 0.4; }
 .cal-day.hoy { border-color: var(--granate); }
 .cal-day.fin-semana { background: #181818; }
-.cal-num { font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); margin-bottom: 6px; }
+.cal-num { font-family: "Space Mono", monospace; font-size: 11px; color: var(--gris-texto); margin-bottom: 4px; }
 .cal-day.hoy .cal-num { color: var(--granate); font-weight: 700; }
-.cal-emp-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.cal-emp-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
 .cal-emp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.cal-emp-hrs { font-family: "Space Mono", monospace; font-size: 10px; }
+.cal-emp-hrs { font-family: "Space Mono", monospace; font-size: 11px; }
 .cal-emp-hrs.ok   { color: var(--verde); }
 .cal-emp-hrs.warn { color: var(--amarillo); }
 .cal-emp-hrs.bad  { color: var(--granate); }
-.cal-emp-hrs.vacio { color: #333; }
+.cal-emp-hrs.vacio { color: #3a3a3a; }
 .cal-emp-name { font-size: 9px; color: var(--gris-texto); }
 </style>
 
@@ -958,10 +958,10 @@ function renderCalendario() {
   // Para poder mostrar el saldo total al final de cada semana del calendario,
   // recorremos desde el inicio hasta el domingo de cada semana visible.
   function saldoAcumuladoHastaSemana(emp, domingoKey) {
-    // Saldo = horas iniciales a compensar + déficit acumulado de semanas cerradas hasta domingoKey
     const inicioD = new Date(FECHA_INICIO + "T12:00:00");
     const lunesI  = new Date(inicioD);
     lunesI.setDate(inicioD.getDate() - ((inicioD.getDay()+6)%7));
+    const lunesIKey = lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate());
 
     let saldo = HORAS_INICIALES[emp];
     const cur = new Date(lunesI);
@@ -971,10 +971,9 @@ function renderCalendario() {
       const dom  = new Date(cur); dom.setDate(cur.getDate()+6);
       const dKey = dom.getFullYear()+"-"+pad(dom.getMonth()+1)+"-"+pad(dom.getDate());
 
-      // Solo semanas ya cerradas Y que no superen el domingo de referencia
-      if (dKey >= hoyStr || dKey > domingoKey) break;
+      // Procesar solo semanas cuyo domingo <= domingoKey Y < hoy (cerradas)
+      if (dKey > domingoKey || dKey >= hoyStr) { cur.setDate(cur.getDate()+7); if (lKey > domingoKey) break; continue; }
 
-      // Horas trabajadas L-V de esta semana (vacaciones reducen objetivo)
       let horasSem = 0, vacLab = 0;
       for (let i = 0; i < 5; i++) {
         const f = new Date(cur); f.setDate(cur.getDate()+i);
@@ -984,21 +983,21 @@ function renderCalendario() {
         else horasSem += horasDelDia(emp, fKey);
       }
 
-      // Objetivo ajustado
       let obj = OBJETIVO_SEMANA - vacLab * OBJETIVO_DIA;
-      if (lKey === (lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate()))) {
+      if (lKey === lunesIKey) {
         const vierI = new Date(lunesI); vierI.setDate(lunesI.getDate()+4);
         const dias  = Math.min(5, Math.floor((vierI - inicioD) / 86400000) + 1);
         obj = Math.max(0, dias * OBJETIVO_DIA - vacLab * OBJETIVO_DIA);
       }
       obj = Math.max(0, obj);
 
-      // Balance: positivo = han trabajado más → reduce saldo; negativo → aumenta saldo
+      // bal positivo = superávit → baja saldo; bal negativo = déficit → sube saldo
       const bal = horasSem - obj;
-      saldo = Math.max(0, saldo - bal); // restar superávit (baja saldo), sumar déficit (sube saldo)
+      saldo = saldo - bal; // si bal=+2 → saldo baja 2; si bal=-2 → saldo sube 2
+      saldo = Math.max(0, saldo);
 
       cur.setDate(cur.getDate()+7);
-      if (lKey > domingoKey) break;
+      if (lKey >= domingoKey) break;
     }
     return saldo;
   }
@@ -1097,32 +1096,30 @@ function renderCalendario() {
     // ── Columna resumen semanal ──
     function lineaEmp(nombre, color, total, obj, bal, saldo, semCerrada) {
       const cHrs = total >= obj ? "ok" : total >= obj*0.7 ? "warn" : total > 0 ? "bad" : "vacio";
-      const balTxt = bal >= 0
-        ? `<span style="color:var(--verde)">−${bal}h</span>`   // han hecho más → compensan
-        : `<span style="color:var(--granate)">+${Math.abs(bal)}h</span>`; // han hecho menos → deben
-      const saldoTxt = saldo !== null
-        ? `<span style="color:${saldo===0?"var(--verde)":"var(--granate)"}"><b>${saldo}h</b></span>`
-        : `<span style="color:var(--gris-texto)">en curso</span>`;
-
-      return `
-        <div style="margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-            <div style="width:7px;height:7px;border-radius:50%;background:${color}"></div>
-            <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--blanco)">${nombre}</span>
-          </div>
-          <div style="font-family:'Space Mono',monospace;font-size:10px;padding-left:12px;line-height:1.7">
-            <div><span style="color:var(--gris-texto)">Horas: </span><span class="cal-emp-hrs ${cHrs}">${total}h / ${obj}h</span></div>
-            <div><span style="color:var(--gris-texto)">Semana: </span>${semCerrada ? balTxt : '<span style="color:var(--gris-texto)">en curso</span>'}</div>
-            <div><span style="color:var(--gris-texto)">Saldo: </span>${saldoTxt}</div>
-          </div>
-        </div>`;
+      const balColor = bal >= 0 ? "var(--verde)" : "var(--granate)";
+      const balTxt   = bal >= 0 ? `−${bal}h` : `+${Math.abs(bal)}h`;
+      const saldoColor = saldo === 0 ? "var(--verde)" : "var(--granate)";
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+          <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--blanco)">${nombre}</span>
+        </div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;padding-left:12px;line-height:1.8">
+          <div><span style="color:var(--gris-texto)">hrs </span><span class="cal-emp-hrs ${cHrs}">${total}h</span><span style="color:var(--gris-texto);font-size:9px"> /${obj}h</span></div>
+          ${semCerrada
+            ? `<div><span style="color:var(--gris-texto)">sem </span><span style="color:${balColor};font-weight:700">${balTxt}</span></div>
+               <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:3px;padding-top:3px"><span style="color:var(--gris-texto)">total </span><span style="color:${saldoColor};font-weight:700">${saldo}h</span></div>`
+            : `<div><span style="color:var(--gris-texto);font-size:9px">semana en curso</span></div>`
+          }
+        </div>
+      </div>`;
     }
 
     const semCerrada = domingoKey < hoyStr;
-    semHtml += `<div class="cal-day cal-total-semana" style="padding:10px 12px;min-height:80px">
-      <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--granate);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Resumen</div>
+    semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px">
+      <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--granate);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(151,39,46,0.25)">Resumen</div>
       ${lineaEmp("Diego","#97272E",totalDiego,objDiego,balDiego,saldoDiego,semCerrada)}
-      ${lineaEmp("Jesús","#1565C0",totalJesus,objJesus,balJesus,saldoJesus,semCerrada).replace(/border-bottom[^;]+;/,"")}
+      ${lineaEmp("Jesús","#1565C0",totalJesus,objJesus,balJesus,saldoJesus,semCerrada)}
     </div>`;
 
     html += semHtml;
