@@ -380,7 +380,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 /* ── CALENDARIO ── */
 .cal-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .cal-mes-label { font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blanco); min-width: 180px; text-align: center; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr) 80px; gap: 2px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr) 200px; gap: 2px; }
 .cal-dow { padding: 8px 4px; text-align: center; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gris-texto); }
 .cal-dow-total { color: var(--granate); }.cal-total-semana { background: rgba(151,39,46,0.08) !important; border-color: rgba(151,39,46,0.3) !important; cursor: default !important; }
 
@@ -1036,33 +1036,51 @@ function renderCalendario() {
       </div>`;
     });
 
-    // ── Columna total semanal con balance ──
-    function fmtBal(bal, obj) {
-      if (obj === 0) return `<span class="cal-emp-hrs ok">☀ vac</span>`;
-      const signo = bal >= 0 ? "−" : "+"; // bal positivo = han hecho más = compensan (−); bal negativo = deben (+)
-      const abs = Math.abs(bal);
-      const cls = bal >= 0 ? "ok" : "bad";
-      return `<span class="cal-emp-hrs ${cls}" style="font-size:9px">${signo}${abs}h</span>`;
+    // ── Columna total semanal ──
+    function fmtComp(bal, obj) {
+      // bal = horas trabajadas - objetivo
+      // positivo = han hecho MÁS → compensan (reduce lo que deben) → verde, con −
+      // negativo = han hecho MENOS → acumulan → rojo, con +
+      if (obj === 0) return { txt: "—", cls: "vacio" };
+      if (bal === 0) return { txt: "0h", cls: "ok" };
+      if (bal > 0)  return { txt: "−" + bal + "h", cls: "ok" };
+      return { txt: "+" + Math.abs(bal) + "h", cls: "bad" };
     }
 
+    const bD = fmtComp(balDiego, objDiego);
+    const bJ = fmtComp(balJesus, objJesus);
     const cD = totalDiego >= objDiego ? "ok" : totalDiego >= objDiego * 0.7 ? "warn" : totalDiego > 0 ? "bad" : "vacio";
     const cJ = totalJesus >= objJesus ? "ok" : totalJesus >= objJesus * 0.7 ? "warn" : totalJesus > 0 ? "bad" : "vacio";
 
-    const semLabel = objDiego < OBJETIVO_SEMANA || objJesus < OBJETIVO_SEMANA
-      ? `<div class="cal-num" style="color:var(--granate);font-size:9px">Sem <span style="color:#F9A825;font-size:8px">(obj ${objDiego}h/${objJesus}h)</span></div>`
-      : `<div class="cal-num" style="color:var(--granate);font-size:9px">Sem · obj ${OBJETIVO_SEMANA}h</div>`;
+    semHtml += `<div class="cal-day cal-total-semana" style="min-height:80px;padding:10px 12px">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--granate);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid rgba(151,39,46,0.2);padding-bottom:5px">Resumen semana</div>
 
-    semHtml += `<div class="cal-day cal-total-semana">
-      ${semLabel}
-      <div class="cal-emp-row" style="gap:4px;flex-wrap:wrap">
-        <div class="cal-emp-dot" style="background:#97272E"></div>
-        <span class="cal-emp-hrs ${cD}">${totalDiego}h</span>
-        ${fmtBal(balDiego, objDiego)}
+      <!-- DIEGO -->
+      <div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#97272E;flex-shrink:0"></div>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--blanco);font-weight:700">Diego</span>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-family:'Space Mono',monospace;font-size:10px;padding-left:14px">
+          <span style="color:var(--gris-texto)">Horas</span>
+          <span class="cal-emp-hrs ${cD}">${totalDiego}h <span style="color:var(--gris-texto);font-size:9px">/ ${objDiego}h</span></span>
+          <span style="color:var(--gris-texto)">+/-</span>
+          <span class="cal-emp-hrs ${bD.cls}">${bD.txt}</span>
+        </div>
       </div>
-      <div class="cal-emp-row" style="gap:4px;flex-wrap:wrap">
-        <div class="cal-emp-dot" style="background:#1565C0"></div>
-        <span class="cal-emp-hrs ${cJ}">${totalJesus}h</span>
-        ${fmtBal(balJesus, objJesus)}
+
+      <!-- JESÚS -->
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#1565C0;flex-shrink:0"></div>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--blanco);font-weight:700">Jesús</span>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-family:'Space Mono',monospace;font-size:10px;padding-left:14px">
+          <span style="color:var(--gris-texto)">Horas</span>
+          <span class="cal-emp-hrs ${cJ}">${totalJesus}h <span style="color:var(--gris-texto);font-size:9px">/ ${objJesus}h</span></span>
+          <span style="color:var(--gris-texto)">+/-</span>
+          <span class="cal-emp-hrs ${bJ.cls}">${bJ.txt}</span>
+        </div>
       </div>
     </div>`;
 
