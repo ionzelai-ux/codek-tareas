@@ -570,27 +570,26 @@ function horasACompensar(emp) {
     if (domingoKey >= hoyStr) break;
 
     let totalSemana = 0;
-    let diasVac = 0;
-    for (let i = 0; i < 7; i++) {
+    let diasVacLab = 0;
+    for (let i = 0; i < 5; i++) { // solo L-V (lunes=0 a viernes=4)
       const f = new Date(cursor); f.setDate(cursor.getDate()+i);
       const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
       if (fKey < FECHA_INICIO) continue;
-      // Si el día es vacaciones, cuenta como 6h (día completo cubierto)
       if (esDiaVacaciones(emp, fKey)) {
-        diasVac++;
-        totalSemana += OBJETIVO_DIA;
+        diasVacLab++; // vacaciones reduce el objetivo, no suma horas
       } else {
         totalSemana += horasDelDia(emp, fKey);
       }
     }
 
-    // Objetivo semanal ajustado: en semana de inicio, prorateado
-    let objetivoSemana = OBJETIVO_SEMANA;
+    // Objetivo: 30h base, menos 6h por cada día de vacaciones, menos ajuste de semana de inicio
+    let objetivoSemana = OBJETIVO_SEMANA - (diasVacLab * OBJETIVO_DIA);
     if (lunesKey === lunesInicioKey) {
       const viernesInicio = new Date(lunesInicio); viernesInicio.setDate(lunesInicio.getDate()+4);
       const diasDesdeInicio = Math.min(5, Math.floor((viernesInicio - dInicio) / 86400000) + 1);
-      objetivoSemana = diasDesdeInicio * 6;
+      objetivoSemana = (diasDesdeInicio * OBJETIVO_DIA) - (diasVacLab * OBJETIVO_DIA);
     }
+    objetivoSemana = Math.max(0, objetivoSemana);
 
     balance += (totalSemana - objetivoSemana);
     cursor.setDate(cursor.getDate()+7);
@@ -961,22 +960,47 @@ function renderCalendario() {
   ).join("") + `<div class="cal-dow cal-dow-total">Total</div>`;
 
   for (let sem = 0; sem < numSemanas; sem++) {
-    let totalDiego = 0;
-    let totalJesus = 0;
+    // Calcular totales y objetivo ajustado para cada empleado esta semana
+    let totalDiego = 0, totalJesus = 0;
+    let vacDiego = 0, vacJesus = 0;
     let semHtml = "";
+    let semanaContenidoEnMes = false;
 
+    // Recopilar los 7 días primero para calcular objetivos
+    const diasSemana = [];
     for (let dow = 0; dow < 7; dow++) {
       const offset = (sem * 7 + dow) - offsetInicio;
-      const fecha   = new Date(calAnio, calMes, 1 + offset);
+      const fecha = new Date(calAnio, calMes, 1 + offset);
       const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
+      diasSemana.push({ fecha, fechaStr, dow });
+      if (fecha.getMonth() === calMes) semanaContenidoEnMes = true;
+    }
+
+    // Calcular totales y vacaciones de la semana
+    diasSemana.forEach(({ fechaStr }) => {
+      if (esDiaVacaciones("Diego", fechaStr)) vacDiego++;
+      else totalDiego += horasDelDia("Diego", fechaStr);
+      if (esDiaVacaciones("Jesus", fechaStr)) vacJesus++;
+      else totalJesus += horasDelDia("Jesus", fechaStr);
+    });
+
+    // Objetivo semanal = 30h menos 6h por cada día de vacaciones (solo L-V cuentan)
+    const diasLabVacDiego = diasSemana.filter(({fechaStr, dow}) => dow < 5 && esDiaVacaciones("Diego", fechaStr)).length;
+    const diasLabVacJesus = diasSemana.filter(({fechaStr, dow}) => dow < 5 && esDiaVacaciones("Jesus", fechaStr)).length;
+    const objDiego = Math.max(0, OBJETIVO_SEMANA - diasLabVacDiego * OBJETIVO_DIA);
+    const objJesus = Math.max(0, OBJETIVO_SEMANA - diasLabVacJesus * OBJETIVO_DIA);
+
+    // Balance: negativo = deben (rojo), positivo = compensan (verde)
+    const balDiego = totalDiego - objDiego;
+    const balJesus = totalJesus - objJesus;
+
+    // Renderizar los 7 días
+    diasSemana.forEach(({ fecha, fechaStr, dow }) => {
       const esMesActual = fecha.getMonth() === calMes;
       const esHoy       = fechaStr === hoyStr;
       const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
-
       const hDiego = horasDelDia("Diego", fechaStr);
       const hJesus = horasDelDia("Jesus", fechaStr);
-      totalDiego += hDiego;
-      totalJesus += hJesus;
 
       let cls = "cal-day";
       if (!esMesActual) cls += " otro-mes";
@@ -984,23 +1008,21 @@ function renderCalendario() {
       if (esFinSemana)  cls += " fin-semana";
       if (esDiaVacaciones("Diego", fechaStr) || esDiaVacaciones("Jesus", fechaStr)) cls += " vacaciones";
 
-      // Etiqueta del mes si es día de otro mes
       const mesLabel = !esMesActual
         ? `<span style="font-size:8px;color:#555;margin-left:3px">${MESES[fecha.getMonth()].substring(0,3)}</span>`
         : "";
 
       const empRows = [
-        { emp: "Diego", h: hDiego, color: "#97272E" },
-        { emp: "Jesús", h: hJesus, color: "#1565C0" }
-      ].map(({ emp, h, color }) => {
-        const empKey = emp === "Jesús" ? "Jesus" : emp;
+        { emp: "Diego", empKey: "Diego", h: hDiego, color: "#97272E" },
+        { emp: "Jesús", empKey: "Jesus", h: hJesus, color: "#1565C0" }
+      ].map(({ emp, empKey, h, color }) => {
         if (esDiaVacaciones(empKey, fechaStr)) {
           return `<div class="cal-emp-row">
             <div class="cal-emp-dot" style="background:${color}"></div>
             <span class="cal-vac-label">☀ vac</span>
           </div>`;
         }
-        let c = "cal-emp-hrs " + (h === 0 ? "vacio" : h >= OBJETIVO_DIA ? "ok" : h >= OBJETIVO_DIA * 0.5 ? "warn" : "bad");
+        const c = "cal-emp-hrs " + (h === 0 ? "vacio" : h >= OBJETIVO_DIA ? "ok" : h >= OBJETIVO_DIA * 0.5 ? "warn" : "bad");
         return `<div class="cal-emp-row">
           <div class="cal-emp-dot" style="background:${color}"></div>
           <span class="${c}">${h > 0 ? h+"h" : "—"}</span>
@@ -1012,20 +1034,35 @@ function renderCalendario() {
         <div class="cal-num">${fecha.getDate()}${mesLabel}</div>
         ${empRows}
       </div>`;
+    });
+
+    // ── Columna total semanal con balance ──
+    function fmtBal(bal, obj) {
+      if (obj === 0) return `<span class="cal-emp-hrs ok">☀ vac</span>`;
+      const signo = bal >= 0 ? "−" : "+"; // bal positivo = han hecho más = compensan (−); bal negativo = deben (+)
+      const abs = Math.abs(bal);
+      const cls = bal >= 0 ? "ok" : "bad";
+      return `<span class="cal-emp-hrs ${cls}" style="font-size:9px">${signo}${abs}h</span>`;
     }
 
-    // Columna total semanal
-    const cD = totalDiego >= OBJETIVO_SEMANA ? "ok" : totalDiego >= OBJETIVO_SEMANA * 0.7 ? "warn" : totalDiego > 0 ? "bad" : "vacio";
-    const cJ = totalJesus >= OBJETIVO_SEMANA ? "ok" : totalJesus >= OBJETIVO_SEMANA * 0.7 ? "warn" : totalJesus > 0 ? "bad" : "vacio";
+    const cD = totalDiego >= objDiego ? "ok" : totalDiego >= objDiego * 0.7 ? "warn" : totalDiego > 0 ? "bad" : "vacio";
+    const cJ = totalJesus >= objJesus ? "ok" : totalJesus >= objJesus * 0.7 ? "warn" : totalJesus > 0 ? "bad" : "vacio";
+
+    const semLabel = objDiego < OBJETIVO_SEMANA || objJesus < OBJETIVO_SEMANA
+      ? `<div class="cal-num" style="color:var(--granate);font-size:9px">Sem <span style="color:#F9A825;font-size:8px">(obj ${objDiego}h/${objJesus}h)</span></div>`
+      : `<div class="cal-num" style="color:var(--granate);font-size:9px">Sem · obj ${OBJETIVO_SEMANA}h</div>`;
+
     semHtml += `<div class="cal-day cal-total-semana">
-      <div class="cal-num" style="color:var(--granate);font-size:9px">Sem</div>
-      <div class="cal-emp-row">
+      ${semLabel}
+      <div class="cal-emp-row" style="gap:4px;flex-wrap:wrap">
         <div class="cal-emp-dot" style="background:#97272E"></div>
-        <span class="cal-emp-hrs ${cD}">${totalDiego > 0 ? totalDiego+"h" : "—"}</span>
+        <span class="cal-emp-hrs ${cD}">${totalDiego}h</span>
+        ${fmtBal(balDiego, objDiego)}
       </div>
-      <div class="cal-emp-row">
+      <div class="cal-emp-row" style="gap:4px;flex-wrap:wrap">
         <div class="cal-emp-dot" style="background:#1565C0"></div>
-        <span class="cal-emp-hrs ${cJ}">${totalJesus > 0 ? totalJesus+"h" : "—"}</span>
+        <span class="cal-emp-hrs ${cJ}">${totalJesus}h</span>
+        ${fmtBal(balJesus, objJesus)}
       </div>
     </div>`;
 
