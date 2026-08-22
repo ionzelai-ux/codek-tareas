@@ -954,35 +954,53 @@ function renderCalendario() {
   const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
   const numSemanas   = totalCeldas / 7;
 
-  const INICIO_D    = new Date(FECHA_INICIO + "T12:00:00");
-  const LUNES_I_TS  = new Date(INICIO_D.getTime()); // copia inmutable
-  LUNES_I_TS.setDate(INICIO_D.getDate() - ((INICIO_D.getDay()+6)%7));
-  const LUNES_I_KEY = LUNES_I_TS.getFullYear()+"-"+pad(LUNES_I_TS.getMonth()+1)+"-"+pad(LUNES_I_TS.getDate());
+  // Calcular saldo acumulado: recorre semanas desde FECHA_INICIO hasta domingoKey
+  // Semana a semana: saldo = saldo - (horas_hechas - objetivo)
+  // Si hicieron más → saldo baja. Si hicieron menos → saldo sube. Mínimo 0.
+  function calcSaldo(emp, domingoKey) {
+    var saldo = HORAS_INICIALES[emp];
+    // Empezamos en el lunes de FECHA_INICIO (29 jun 2026 = lunes, así offset=0)
+    var d = new Date(FECHA_INICIO + "T12:00:00");
+    var lunesInicio = new Date(d.getTime());
+    var offsetLunes = (d.getDay() + 6) % 7; // lunes=0
+    lunesInicio.setDate(d.getDate() - offsetLunes);
 
-  const calcSaldo = (emp, domingoKey) => {
-    let saldo = HORAS_INICIALES[emp];
-    const cur = new Date(LUNES_I_TS.getTime()); // copia fresca cada llamada
-    for (let guard = 0; guard < 60; guard++) {
-      const lKey = cur.getFullYear()+"-"+pad(cur.getMonth()+1)+"-"+pad(cur.getDate());
-      const dom  = new Date(cur.getTime()); dom.setDate(cur.getDate()+6);
-      const dKey = dom.getFullYear()+"-"+pad(dom.getMonth()+1)+"-"+pad(dom.getDate());
-      if (dKey >= hoyStr || dKey > domingoKey) break;
-      let hrs = 0, vac = 0;
-      for (let i = 0; i < 5; i++) {
-        const f = new Date(cur.getTime()); f.setDate(cur.getDate()+i);
-        const fk = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
+    var cur = new Date(lunesInicio.getTime());
+
+    for (var iter = 0; iter < 60; iter++) {
+      // Domingo de esta semana
+      var domingo = new Date(cur.getTime());
+      domingo.setDate(cur.getDate() + 6);
+      var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
+
+      // Parar si la semana no está cerrada aún o si ya pasamos el límite
+      if (dKey >= hoyStr) break;
+      if (dKey > domingoKey) break;
+
+      // Sumar horas L-V de esta semana
+      var hrs = 0;
+      var vac = 0;
+      for (var i = 0; i < 5; i++) {
+        var dia = new Date(cur.getTime());
+        dia.setDate(cur.getDate() + i);
+        var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
         if (fk < FECHA_INICIO) continue;
-        if (esDiaVacaciones(emp, fk)) vac++;
-        else hrs += horasDelDia(emp, fk);
+        if (esDiaVacaciones(emp, fk)) { vac++; }
+        else { hrs += horasDelDia(emp, fk); }
       }
-      const obj = (lKey === LUNES_I_KEY)
-        ? Math.max(0, 5 * OBJETIVO_DIA - vac * OBJETIVO_DIA)
-        : Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
-      saldo = Math.max(0, saldo - (hrs - obj));
-      cur.setDate(cur.getDate()+7);
+
+      // Objetivo ajustado por vacaciones
+      var obj = Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
+
+      // Actualizar saldo
+      saldo = saldo - (hrs - obj);
+      if (saldo < 0) saldo = 0;
+
+      // Siguiente lunes
+      cur.setDate(cur.getDate() + 7);
     }
     return saldo;
-  };
+  }
 
   const fmtSem = (bal) => bal >= 0
     ? `<span style="color:var(--granate)">+${bal}h</span>`   // déficit → deben más
@@ -1024,7 +1042,6 @@ function renderCalendario() {
     // Saldo acumulado al cierre de esta semana
     const saldoD = semCerrada ? calcSaldo("Diego", domingoKey) : null;
     const saldoJ = semCerrada ? calcSaldo("Jesus", domingoKey) : null;
-    if (semCerrada) console.log("SEM",domingoKey,"Diego:",totD,"h → saldo",saldoD,"| Jesus:",totJ,"h → saldo",saldoJ);
 
     // Renderizar días
     let semHtml = "";
