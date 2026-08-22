@@ -1024,6 +1024,7 @@ function renderCalendario() {
     // Saldo acumulado al cierre de esta semana
     const saldoD = semCerrada ? calcSaldo("Diego", domingoKey) : null;
     const saldoJ = semCerrada ? calcSaldo("Jesus", domingoKey) : null;
+    if (semCerrada) console.log("SEM",domingoKey,"Diego:",totD,"h → saldo",saldoD,"| Jesus:",totJ,"h → saldo",saldoJ);
 
     // Renderizar días
     let semHtml = "";
