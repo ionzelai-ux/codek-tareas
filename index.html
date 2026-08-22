@@ -954,68 +954,47 @@ function renderCalendario() {
   const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
   const numSemanas   = totalCeldas / 7;
 
-  // ── Pre-calcular saldo acumulado semana a semana desde FECHA_INICIO ──
-  // Para poder mostrar el saldo total al final de cada semana del calendario,
-  // recorremos desde el inicio hasta el domingo de cada semana visible.
-  function saldoAcumuladoHastaSemana(emp, domingoKey) {
-    // Arrancamos en el lunes de FECHA_INICIO (que es el 29 jun 2026, un lunes)
-    const inicioD  = new Date(FECHA_INICIO + "T12:00:00");
-    const lunesI   = new Date(inicioD);
-    lunesI.setDate(inicioD.getDate() - ((inicioD.getDay()+6)%7));
-    const lunesIKey = lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate());
+  // Cabecera
+  const INICIO_D  = new Date(FECHA_INICIO + "T12:00:00");
+  const LUNES_I   = new Date(INICIO_D);
+  LUNES_I.setDate(INICIO_D.getDate() - ((INICIO_D.getDay()+6)%7));
+  const LUNES_I_KEY = LUNES_I.getFullYear()+"-"+pad(LUNES_I.getMonth()+1)+"-"+pad(LUNES_I.getDate());
 
+  const calcSaldo = (emp, domingoKey) => {
     let saldo = HORAS_INICIALES[emp];
-    const cur = new Date(lunesI);
-
-    while (true) {
+    const cur = new Date(LUNES_I);
+    for (let guard = 0; guard < 60; guard++) {
       const lKey = cur.getFullYear()+"-"+pad(cur.getMonth()+1)+"-"+pad(cur.getDate());
       const dom  = new Date(cur); dom.setDate(cur.getDate()+6);
       const dKey = dom.getFullYear()+"-"+pad(dom.getMonth()+1)+"-"+pad(dom.getDate());
-
-      // Solo semanas cuyo domingo ya pasó (cerradas) y que estén dentro del rango pedido
-      if (dKey >= hoyStr) break;   // semana no cerrada aún
-      if (dKey > domingoKey) break; // ya hemos pasado la semana pedida
-
-      // Calcular horas L-V (saltando días anteriores a FECHA_INICIO) y vacaciones
-      let horasSem = 0, vacLab = 0;
+      if (dKey >= hoyStr || dKey > domingoKey) break;
+      let hrs = 0, vac = 0;
       for (let i = 0; i < 5; i++) {
-        const f    = new Date(cur); f.setDate(cur.getDate()+i);
-        const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
-        if (fKey < FECHA_INICIO) continue;
-        if (esDiaVacaciones(emp, fKey)) vacLab++;
-        else horasSem += horasDelDia(emp, fKey);
+        const f = new Date(cur); f.setDate(cur.getDate()+i);
+        const fk = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
+        if (fk < FECHA_INICIO) continue;
+        if (esDiaVacaciones(emp, fk)) vac++;
+        else hrs += horasDelDia(emp, fk);
       }
-
-      // Objetivo: semana de inicio prorateada, resto 30h menos vacaciones
-      let obj;
-      if (lKey === lunesIKey) {
-        // Días laborables desde FECHA_INICIO hasta el viernes de esta semana
-        const vier = new Date(lunesI); vier.setDate(lunesI.getDate()+4);
-        const dias = Math.min(5, Math.max(0, Math.floor((vier - inicioD)/86400000) + 1));
-        obj = Math.max(0, dias * OBJETIVO_DIA - vacLab * OBJETIVO_DIA);
-      } else {
-        obj = Math.max(0, OBJETIVO_SEMANA - vacLab * OBJETIVO_DIA);
-      }
-
-      // bal positivo = superávit → reduce saldo; bal negativo = déficit → aumenta saldo
-      const bal = horasSem - obj;
-      saldo = Math.max(0, saldo - bal);
-
+      let obj = (lKey === LUNES_I_KEY)
+        ? Math.max(0, 5 * OBJETIVO_DIA - vac * OBJETIVO_DIA)  // semana inicio: 5 días completos
+        : Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
+      saldo = Math.max(0, saldo - (hrs - obj));
       cur.setDate(cur.getDate()+7);
     }
     return saldo;
-  }
+  };
 
-  // Cabecera
+  const fmtSem = (bal) => bal >= 0
+    ? `<span style="color:var(--granate)">+${bal}h</span>`   // déficit → deben más
+    : `<span style="color:var(--verde)">−${Math.abs(bal)}h</span>`; // superávit → compensan
+
   let html = ["L","M","X","J","V","S","D"].map(d =>
     `<div class="cal-dow">${d}</div>`
-  ).join("") + `<div class="cal-dow cal-dow-total">Resumen semana</div>`;
+  ).join("") + `<div class="cal-dow cal-dow-total">Resumen</div>`;
 
   for (let sem = 0; sem < numSemanas; sem++) {
-    let totalDiego = 0, totalJesus = 0;
-    let semHtml = "";
     const diasSemana = [];
-
     for (let dow = 0; dow < 7; dow++) {
       const offset = (sem * 7 + dow) - offsetInicio;
       const fecha = new Date(calAnio, calMes, 1 + offset);
@@ -1023,107 +1002,82 @@ function renderCalendario() {
       diasSemana.push({ fecha, fechaStr, dow });
     }
 
-    // Domingo de esta semana
-    const domSem = diasSemana[6];
-    const domingoKey = domSem.fechaStr;
+    const domingoKey = diasSemana[6].fechaStr;
+    const lunesKey   = diasSemana[0].fechaStr;
+    const semCerrada = domingoKey < hoyStr;
 
-    // Totales y vacaciones de la semana
-    diasSemana.forEach(({ fechaStr }) => {
-      if (esDiaVacaciones("Diego", fechaStr)) {} // no suma
-      else totalDiego += horasDelDia("Diego", fechaStr);
-      if (esDiaVacaciones("Jesus", fechaStr)) {}
-      else totalJesus += horasDelDia("Jesus", fechaStr);
+    // Horas y vacaciones de la semana
+    let totD = 0, totJ = 0, vacD = 0, vacJ = 0;
+    diasSemana.forEach(({fechaStr, dow}) => {
+      if (dow < 5) {
+        if (esDiaVacaciones("Diego", fechaStr)) vacD++;
+        else totD += horasDelDia("Diego", fechaStr);
+        if (esDiaVacaciones("Jesus", fechaStr)) vacJ++;
+        else totJ += horasDelDia("Jesus", fechaStr);
+      }
     });
 
-    // Vacaciones laborables (L-V)
-    const vacLabDiego = diasSemana.filter(({fechaStr,dow}) => dow < 5 && esDiaVacaciones("Diego", fechaStr)).length;
-    const vacLabJesus = diasSemana.filter(({fechaStr,dow}) => dow < 5 && esDiaVacaciones("Jesus", fechaStr)).length;
-
-    // Objetivo ajustado de esta semana concreta
-    const lunesI = new Date(new Date(FECHA_INICIO+"T12:00:00"));
-    lunesI.setDate(lunesI.getDate() - ((lunesI.getDay()+6)%7));
-    const lunesIKey = lunesI.getFullYear()+"-"+pad(lunesI.getMonth()+1)+"-"+pad(lunesI.getDate());
-    const lunesEstaSem = diasSemana[0].fechaStr;
-
-    let objDiego = OBJETIVO_SEMANA - vacLabDiego * OBJETIVO_DIA;
-    let objJesus = OBJETIVO_SEMANA - vacLabJesus * OBJETIVO_DIA;
-    if (lunesEstaSem === lunesIKey) {
-      const inicioD = new Date(FECHA_INICIO+"T12:00:00");
-      const vierI   = new Date(lunesI); vierI.setDate(lunesI.getDate()+4);
-      const dias    = Math.min(5, Math.floor((vierI - inicioD) / 86400000) + 1);
-      objDiego = Math.max(0, dias * OBJETIVO_DIA - vacLabDiego * OBJETIVO_DIA);
-      objJesus = Math.max(0, dias * OBJETIVO_DIA - vacLabJesus * OBJETIVO_DIA);
-    }
-    objDiego = Math.max(0, objDiego);
-    objJesus = Math.max(0, objJesus);
-
-    // Balance de esta semana
-    const balDiego = totalDiego - objDiego;
-    const balJesus = totalJesus - objJesus;
+    // Objetivo de esta semana para mostrar en pantalla
+    const esInicioSem = lunesKey === LUNES_I_KEY;
+    const objD = esInicioSem ? Math.max(0, 5*OBJETIVO_DIA - vacD*OBJETIVO_DIA) : Math.max(0, OBJETIVO_SEMANA - vacD*OBJETIVO_DIA);
+    const objJ = esInicioSem ? Math.max(0, 5*OBJETIVO_DIA - vacJ*OBJETIVO_DIA) : Math.max(0, OBJETIVO_SEMANA - vacJ*OBJETIVO_DIA);
+    const balD = totD - objD;
+    const balJ = totJ - objJ;
 
     // Saldo acumulado al cierre de esta semana
-    const saldoDiego = domingoKey < hoyStr ? saldoAcumuladoHastaSemana("Diego", domingoKey) : null;
-    const saldoJesus = domingoKey < hoyStr ? saldoAcumuladoHastaSemana("Jesus", domingoKey) : null;
+    const saldoD = semCerrada ? calcSaldo("Diego", domingoKey) : null;
+    const saldoJ = semCerrada ? calcSaldo("Jesus", domingoKey) : null;
 
     // Renderizar días
-    diasSemana.forEach(({ fecha, fechaStr, dow }) => {
-      const esMesActual = fecha.getMonth() === calMes;
-      const esHoy       = fechaStr === hoyStr;
-      const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
-      const hDiego = horasDelDia("Diego", fechaStr);
-      const hJesus = horasDelDia("Jesus", fechaStr);
+    let semHtml = "";
+    diasSemana.forEach(({fecha, fechaStr, dow}) => {
+      const esMes = fecha.getMonth() === calMes;
+      const esHoy = fechaStr === hoyStr;
+      const esFS  = fecha.getDay() === 0 || fecha.getDay() === 6;
+      const hD = horasDelDia("Diego", fechaStr);
+      const hJ = horasDelDia("Jesus", fechaStr);
 
       let cls = "cal-day";
-      if (!esMesActual) cls += " otro-mes";
-      if (esHoy)        cls += " hoy";
-      if (esFinSemana)  cls += " fin-semana";
-      if (esDiaVacaciones("Diego", fechaStr) || esDiaVacaciones("Jesus", fechaStr)) cls += " vacaciones";
+      if (!esMes) cls += " otro-mes";
+      if (esHoy)  cls += " hoy";
+      if (esFS)   cls += " fin-semana";
+      if (esDiaVacaciones("Diego",fechaStr)||esDiaVacaciones("Jesus",fechaStr)) cls += " vacaciones";
 
-      const mesLabel = !esMesActual
-        ? `<span style="font-size:8px;color:#555;margin-left:3px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
+      const mesLbl = !esMes ? `<span style="font-size:8px;color:#555;margin-left:2px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
 
-      const empRows = [
-        { emp: "Diego", empKey: "Diego", h: hDiego, color: "#97272E" },
-        { emp: "Jesús", empKey: "Jesus", h: hJesus, color: "#1565C0" }
-      ].map(({ emp, empKey, h, color }) => {
-        if (esDiaVacaciones(empKey, fechaStr)) {
-          return `<div class="cal-emp-row"><div class="cal-emp-dot" style="background:${color}"></div><span class="cal-vac-label">☀ vac</span></div>`;
-        }
-        const c = "cal-emp-hrs "+(h===0?"vacio":h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*0.5?"warn":"bad");
-        return `<div class="cal-emp-row"><div class="cal-emp-dot" style="background:${color}"></div><span class="${c}">${h>0?h+"h":"—"}</span><span class="cal-emp-name">${emp}</span></div>`;
+      const rows = [
+        {empKey:"Diego", label:"Diego", h:hD, color:"#97272E"},
+        {empKey:"Jesus", label:"Jesús", h:hJ, color:"#1565C0"}
+      ].map(({empKey, label, h, color}) => {
+        if (esDiaVacaciones(empKey, fechaStr))
+          return `<div class="cal-emp-row"><span style="background:${color}" class="cal-emp-dot"></span><span class="cal-vac-label">☀ vac</span></div>`;
+        const c = "cal-emp-hrs "+(h===0?"vacio":h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.5?"warn":"bad");
+        return `<div class="cal-emp-row"><span style="background:${color}" class="cal-emp-dot"></span><span class="${c}">${h>0?h+"h":"—"}</span><span class="cal-emp-name">${label}</span></div>`;
       }).join("");
 
-      semHtml += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer">
-        <div class="cal-num">${fecha.getDate()}${mesLabel}</div>${empRows}</div>`;
+      semHtml += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer"><div class="cal-num">${fecha.getDate()}${mesLbl}</div>${rows}</div>`;
     });
 
-    // ── Columna resumen semanal ──
-    function lineaEmp(nombre, color, total, obj, bal, saldo, semCerrada) {
-      const cHrs = total >= obj ? "ok" : total >= obj*0.7 ? "warn" : total > 0 ? "bad" : "vacio";
-      const balColor = bal >= 0 ? "var(--verde)" : "var(--granate)";
-      const balTxt   = bal >= 0 ? `−${bal}h` : `+${Math.abs(bal)}h`;
-      const saldoColor = saldo === 0 ? "var(--verde)" : "var(--granate)";
-      return `<div style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-          <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
-          <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--blanco)">${nombre}</span>
+    // Columna resumen — compacta, una tabla por persona
+    const bloque = (nombre, color, tot, obj, bal, saldo) => {
+      const cH = tot>=obj?"ok":tot>=obj*.7?"warn":tot>0?"bad":"vacio";
+      const sc = saldo===0?"var(--verde)":"var(--granate)";
+      return `<div style="margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:4px">
+          <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
+          <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
         </div>
-        <div style="font-family:'Space Mono',monospace;font-size:10px;padding-left:12px;line-height:1.8">
-          <div><span style="color:var(--gris-texto)">hrs </span><span class="cal-emp-hrs ${cHrs}">${total}h</span><span style="color:var(--gris-texto);font-size:9px"> /${obj}h</span></div>
-          ${semCerrada
-            ? `<div><span style="color:var(--gris-texto)">sem </span><span style="color:${balColor};font-weight:700">${balTxt}</span></div>
-               <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:3px;padding-top:3px"><span style="color:var(--gris-texto)">total </span><span style="color:${saldoColor};font-weight:700">${saldo}h</span></div>`
-            : `<div><span style="color:var(--gris-texto);font-size:9px">semana en curso</span></div>`
-          }
+        <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;line-height:1.7;color:var(--gris-texto)">
+          <span class="cal-emp-hrs ${cH}">${tot}h</span><span> / ${obj}h</span><br>
+          ${semCerrada ? fmtSem(bal)+"<br><span style='color:"+sc+";font-weight:700'>⬤ "+saldo+"h</span>" : "<span style='font-size:9px'>en curso</span>"}
         </div>
       </div>`;
-    }
+    };
 
-    const semCerrada = domingoKey < hoyStr;
-    semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px">
-      <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--granate);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(151,39,46,0.25)">Resumen</div>
-      ${lineaEmp("Diego","#97272E",totalDiego,objDiego,balDiego,saldoDiego,semCerrada)}
-      ${lineaEmp("Jesús","#1565C0",totalJesus,objJesus,balJesus,saldoJesus,semCerrada)}
+    semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px;border-left:2px solid rgba(151,39,46,0.4)">
+      ${bloque("Diego","#97272E",totD,objD,balD,saldoD)}
+      <div style="border-top:1px solid #222;margin:4px 0"></div>
+      ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ)}
     </div>`;
 
     html += semHtml;
