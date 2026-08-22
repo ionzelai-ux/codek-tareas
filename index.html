@@ -551,52 +551,8 @@ function horasTotal(emp) {
   return Object.keys(datos[emp]).reduce((t,f) => t + horasDelDia(emp,f), 0);
 }
 function horasACompensar(emp) {
-  if (!datos[emp] && !(vacaciones[emp] && Object.keys(vacaciones[emp]).length > 0)) return HORAS_INICIALES[emp];
-
-  const hoyStr = hoy();
-  let balance = 0;
-
-  const dInicio = new Date(FECHA_INICIO + "T12:00:00");
-  const lunesInicio = new Date(dInicio);
-  lunesInicio.setDate(dInicio.getDate() - ((dInicio.getDay()+6)%7));
-  const lunesInicioKey = lunesInicio.getFullYear()+"-"+pad(lunesInicio.getMonth()+1)+"-"+pad(lunesInicio.getDate());
-
-  const cursor = new Date(lunesInicio);
-  while (true) {
-    const lunesKey = cursor.getFullYear()+"-"+pad(cursor.getMonth()+1)+"-"+pad(cursor.getDate());
-    const domingo = new Date(cursor); domingo.setDate(cursor.getDate()+6);
-    const domingoKey = domingo.getFullYear()+"-"+pad(domingo.getMonth()+1)+"-"+pad(domingo.getDate());
-
-    if (domingoKey >= hoyStr) break;
-
-    let totalSemana = 0;
-    let diasVacLab = 0;
-    for (let i = 0; i < 5; i++) { // solo L-V (lunes=0 a viernes=4)
-      const f = new Date(cursor); f.setDate(cursor.getDate()+i);
-      const fKey = f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate());
-      if (fKey < FECHA_INICIO) continue;
-      if (esDiaVacaciones(emp, fKey)) {
-        diasVacLab++; // vacaciones reduce el objetivo, no suma horas
-      } else {
-        totalSemana += horasDelDia(emp, fKey);
-      }
-    }
-
-    // Objetivo: 30h base, menos 6h por cada día de vacaciones, menos ajuste de semana de inicio
-    let objetivoSemana = OBJETIVO_SEMANA - (diasVacLab * OBJETIVO_DIA);
-    if (lunesKey === lunesInicioKey) {
-      const viernesInicio = new Date(lunesInicio); viernesInicio.setDate(lunesInicio.getDate()+4);
-      const diasDesdeInicio = Math.min(5, Math.floor((viernesInicio - dInicio) / 86400000) + 1);
-      objetivoSemana = (diasDesdeInicio * OBJETIVO_DIA) - (diasVacLab * OBJETIVO_DIA);
-    }
-    objetivoSemana = Math.max(0, objetivoSemana);
-
-    balance += (totalSemana - objetivoSemana);
-    cursor.setDate(cursor.getDate()+7);
-    if (lunesKey > hoyStr) break;
-  }
-
-  return Math.max(0, HORAS_INICIALES[emp] - balance);
+  // Usa exactamente la misma lógica que el calendario
+  return calcSaldo(emp, hoy(), hoy());
 }
 
 // ── LEYENDA ──────────────────────────────────────────────────────
