@@ -220,6 +220,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
     <div class="controls">
       <button class="emp-btn active" onclick="setEmpleado('Diego')" id="btn-Diego">Diego</button>
       <button class="emp-btn" onclick="setEmpleado('Jesus')" id="btn-Jesus">Jesús</button>
+      <button class="emp-btn" onclick="setEmpleado('Alvarez')" id="btn-Alvarez">Álvarez</button>
       <div class="date-wrap">
         <label>Fecha</label>
         <button class="date-nav-btn" onclick="cambiarDia(-1)" title="Día anterior">‹</button>
@@ -283,58 +284,105 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 
   <!-- TAB RESUMEN -->
   <div id="tab-resumen" class="hidden">
-    <div class="resumen-grid">
+    <div class="resumen-grid" style="grid-template-columns:1fr 1fr 1fr">
       <div class="r-card">
         <div class="r-card-head">
           <span class="r-card-title">Diego</span>
           <span class="inicial-badge">Inicial: 3h a compensar</span>
         </div>
-        <table class="wtable">
-          <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
-          <tbody id="tabla-diego"></tbody>
-        </table>
+        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-diego"></tbody></table>
         <div class="prog-wrap">
-          <div class="prog-label"><span>Progreso semanal</span><span id="prog-diego-txt">0 / 30h</span></div>
+          <div class="prog-label"><span>Progreso semanal</span><span id="prog-diego-txt">0h</span></div>
           <div class="prog-bg"><div class="prog-fill" id="prog-diego" style="width:0%"></div></div>
         </div>
-        <div class="total-row">
-          <span class="total-label">Horas a compensar</span>
-          <span class="total-val" id="total-diego">—</span>
-        </div>
+        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-diego">—</span></div>
       </div>
       <div class="r-card">
         <div class="r-card-head">
           <span class="r-card-title">Jesús</span>
           <span class="inicial-badge">Inicial: 7h a compensar</span>
         </div>
-        <table class="wtable">
-          <thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead>
-          <tbody id="tabla-jesus"></tbody>
-        </table>
+        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-jesus"></tbody></table>
         <div class="prog-wrap">
-          <div class="prog-label"><span>Progreso semanal</span><span id="prog-jesus-txt">0 / 30h</span></div>
+          <div class="prog-label"><span>Progreso semanal</span><span id="prog-jesus-txt">0h</span></div>
           <div class="prog-bg"><div class="prog-fill" id="prog-jesus" style="width:0%"></div></div>
         </div>
-        <div class="total-row">
-          <span class="total-label">Horas a compensar</span>
-          <span class="total-val" id="total-jesus">—</span>
+        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-jesus">—</span></div>
+      </div>
+      <div class="r-card">
+        <div class="r-card-head">
+          <span class="r-card-title">Álvarez</span>
+          <span class="inicial-badge">Inicio: 7 sep 2026</span>
         </div>
+        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-alvarez"></tbody></table>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Progreso semanal</span><span id="prog-alvarez-txt">0h</span></div>
+          <div class="prog-bg"><div class="prog-fill" id="prog-alvarez" style="width:0%"></div></div>
+        </div>
+        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-alvarez">—</span></div>
       </div>
     </div>
+
+    <!-- RESUMEN GLOBAL -->
     <div class="comp-sec">
-      <div class="comp-sec-head">Horas a compensar — resumen global</div>
+      <div class="comp-sec-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Horas a compensar — resumen global</span>
+        <button onclick="abrirAjusteManual()" style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">✎ Ajuste manual</button>
+      </div>
       <div class="comp-emp-row">
         <span class="comp-emp-name">Diego</span>
         <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales a compensar: 3h</div>
-          <div class="comp-valor" id="comp-total-diego">4h</div>
+          <div class="comp-inicial">Horas iniciales: 3h · ajuste: <span id="ajuste-diego">0h</span></div>
+          <div class="comp-valor" id="comp-total-diego">—</div>
         </div>
       </div>
       <div class="comp-emp-row">
         <span class="comp-emp-name">Jesús</span>
         <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales a compensar: 7h</div>
-          <div class="comp-valor" id="comp-total-jesus">8h</div>
+          <div class="comp-inicial">Horas iniciales: 7h · ajuste: <span id="ajuste-jesus">0h</span></div>
+          <div class="comp-valor" id="comp-total-jesus">—</div>
+        </div>
+      </div>
+      <div class="comp-emp-row">
+        <span class="comp-emp-name">Álvarez</span>
+        <div class="comp-emp-detail">
+          <div class="comp-inicial">Inicio: 7 sep 2026 · ajuste: <span id="ajuste-alvarez">0h</span></div>
+          <div class="comp-valor" id="comp-total-alvarez">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL AJUSTE MANUAL -->
+    <div id="modal-ajuste" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:none;align-items:center;justify-content:center">
+      <div style="background:var(--gris-medio);border:1px solid var(--gris-borde);border-radius:6px;padding:28px;min-width:320px">
+        <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--granate);margin-bottom:20px">Ajuste manual de horas</div>
+        <div id="modal-pin-wrap">
+          <div style="font-size:12px;color:var(--gris-texto);margin-bottom:10px">Introduce el PIN de administrador:</div>
+          <input id="modal-pin" type="password" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:8px 12px;width:100%;margin-bottom:12px">
+          <div id="modal-pin-error" style="color:var(--granate);font-size:11px;margin-bottom:8px;display:none">PIN incorrecto</div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button onclick="cerrarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">Cancelar</button>
+            <button onclick="verificarPin()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:none;background:var(--granate);color:#fff;cursor:pointer">Entrar</button>
+          </div>
+        </div>
+        <div id="modal-form-wrap" style="display:none">
+          <div style="font-size:12px;color:var(--gris-texto);margin-bottom:16px">Ajuste sobre el saldo calculado (negativo = reduce, positivo = añade):</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--blanco)">Diego</span>
+            <input id="adj-diego" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--blanco)">Jesús</span>
+            <input id="adj-jesus" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:20px">
+            <span style="font-size:13px;color:var(--blanco)">Álvarez</span>
+            <input id="adj-alvarez" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button onclick="cerrarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">Cancelar</button>
+            <button onclick="guardarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:none;background:var(--granate);color:#fff;cursor:pointer">Guardar ajuste</button>
+          </div>
         </div>
       </div>
     </div>
@@ -344,9 +392,10 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
   <div id="tab-informe" class="hidden">
     <div class="informe-controls">
       <div class="inf-emp-filter">
-        <button class="inf-emp-btn active" onclick="setInfEmp('ambos')" id="inf-btn-ambos">Ambos</button>
+        <button class="inf-emp-btn active" onclick="setInfEmp('todos')" id="inf-btn-todos">Todos</button>
         <button class="inf-emp-btn" onclick="setInfEmp('Diego')" id="inf-btn-Diego">Diego</button>
         <button class="inf-emp-btn" onclick="setInfEmp('Jesus')" id="inf-btn-Jesus">Jesús</button>
+        <button class="inf-emp-btn" onclick="setInfEmp('Alvarez')" id="inf-btn-Alvarez">Álvarez</button>
       </div>
       <button class="period-btn active" onclick="setPeriodo('semana')" id="pbtn-semana">Esta semana</button>
       <button class="period-btn" onclick="setPeriodo('mes')" id="pbtn-mes">Este mes</button>
@@ -441,25 +490,32 @@ for (let h = 7; h < 21; h++) {
   FRANJAS.push(pad(h) + ":30");
 }
 
-const HORAS_INICIALES = { Diego: 3, Jesus: 7 };
-const FECHA_INICIO = "2026-06-29"; // Fecha desde la que empieza a computar
+const HORAS_INICIALES = { Diego: 3, Jesus: 7, Alvarez: 0 };
+const FECHA_INICIO = "2026-06-29";
+const FECHA_CAMBIO_OBJETIVO = "2026-09-07"; // A partir de aquí el objetivo baja a 20h
 const OBJETIVO_DIA = 6;
 const OBJETIVO_SEMANA = 30;
+const OBJETIVO_SEMANA_NUEVO = 20;
+
+// Nombres de display
+const NOMBRES = { Diego: "Diego", Jesus: "Jesús", Alvarez: "Álvarez" };
+// Colores de empleado en calendario
+const EMP_COLORES = { Diego: "#97272E", Jesus: "#1565C0", Alvarez: "#2E7D32" };
+
+const EMPLEADOS = ["Diego", "Jesus", "Alvarez"];
 
 let empleadoActual = "Diego";
 let fechaActual = hoy();
 let datos = {};
-let infEmp = "ambos";
+let infEmp = "todos";
 let infPeriodo = "semana";
 
-// Vacaciones: { empleado: { "YYYY-MM-DD": true } }
-// Pre-cargamos los días anteriores a julio ya disfrutados
-let vacaciones = {
-  Diego: {},  // 1 día antes de julio (no tenemos fecha exacta, lo marcamos como contador inicial)
-  Jesus: {}   // 8 días antes de julio (mismo caso)
-};
-// Días previos al inicio del sistema (antes del 29 jun) — los guardamos como contador fijo
-const VAC_PREVIAS = { Diego: 1, Jesus: 8 };
+let vacaciones = { Diego: {}, Jesus: {}, Alvarez: {} };
+const VAC_PREVIAS = { Diego: 1, Jesus: 8, Alvarez: 0 };
+
+// Ajustes manuales de saldo { emp: horas } — protegidos por PIN
+let ajustesManuales = { Diego: 0, Jesus: 0, Alvarez: 0 };
+const PIN_ADMIN = "mnk";
 
 // ── INIT ─────────────────────────────────────────────────────────
 async function init() {
@@ -468,6 +524,8 @@ async function init() {
   // Cargar vacaciones guardadas localmente
   const vacGuardadas = localStorage.getItem("codek_vacaciones");
   if (vacGuardadas) vacaciones = JSON.parse(vacGuardadas);
+  const adjGuardados = localStorage.getItem("codek_ajustes");
+  if (adjGuardados) ajustesManuales = JSON.parse(adjGuardados);
   try {
     const res = await fetch(SCRIPT_URL + "?accion=todos");
     const json = await res.json();
@@ -702,9 +760,10 @@ function renderStats() {
     document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "de 6h objetivo";
   }
 
+  const objHoy = objetivoSemana(hoy());
   const ss = document.getElementById("stat-semana");
   ss.textContent = hs+"h";
-  ss.className = "stat-value "+(hs>=OBJETIVO_SEMANA?"ok":hs>=OBJETIVO_SEMANA*.7?"warn":"bad");
+  ss.className = "stat-value "+(hs>=objHoy?"ok":hs>=objHoy*.7?"warn":"bad");
 
   document.getElementById("stat-total").textContent = horasTotal(emp)+"h";
 
@@ -713,8 +772,8 @@ function renderStats() {
   sc.className = "stat-value "+(comp===0?"ok":"bad");
   document.getElementById("stat-comp-sub").textContent = comp===0?"Al día ✓":"pendiente de compensar";
 
-  document.getElementById("stat-vac").textContent = vac;
-  document.getElementById("stat-vac-sub").textContent = vac === 1 ? "día disfrutado" : "días disfrutados";
+  document.getElementById("stat-vac").textContent = diasVacaciones(empleadoActual);
+  document.getElementById("stat-vac-sub").textContent = "días disfrutados";
 }
 
 // ── GUARDAR (botón manual) ────────────────────────────────────────
@@ -763,8 +822,7 @@ function showTab(tab) {
 }
 function setEmpleado(emp) {
   empleadoActual = emp;
-  document.getElementById("btn-Diego").classList.toggle("active", emp==="Diego");
-  document.getElementById("btn-Jesus").classList.toggle("active", emp==="Jesus");
+  EMPLEADOS.forEach(e => document.getElementById("btn-"+e).classList.toggle("active", e===emp));
   renderGrid(); renderStats();
 }
 function onFechaChange() {
@@ -781,8 +839,9 @@ function cambiarDia(delta) {
 
 // ── RESUMEN ──────────────────────────────────────────────────────
 function renderResumen() {
-  ["Diego","Jesus"].forEach(emp => {
-    const id = emp==="Jesus"?"jesus":"diego";
+  const objSem = objetivoSemana(hoy());
+  ["Diego","Jesus","Alvarez"].forEach(emp => {
+    const id = emp.toLowerCase();
     const dias = datos[emp] ? Object.keys(datos[emp]).sort().reverse().slice(0,7) : [];
     let filas = "";
     dias.forEach(f => {
@@ -794,8 +853,8 @@ function renderResumen() {
     if (!filas) filas = `<tr><td colspan="3" style="color:var(--gris-texto);font-size:11px;padding:14px 16px">Sin registros aún</td></tr>`;
     document.getElementById("tabla-"+id).innerHTML = filas;
     const hs = horasSemana(emp, hoy());
-    const pct = Math.min(100,(hs/OBJETIVO_SEMANA)*100);
-    document.getElementById("prog-"+id+"-txt").textContent = hs+" / "+OBJETIVO_SEMANA+"h";
+    const pct = Math.min(100,(hs/objSem)*100);
+    document.getElementById("prog-"+id+"-txt").textContent = hs+" / "+objSem+"h";
     const fill = document.getElementById("prog-"+id);
     fill.style.width = pct+"%"; fill.className = "prog-fill"+(pct>=100?" ok":"");
     const comp = horasACompensar(emp);
@@ -803,7 +862,41 @@ function renderResumen() {
     document.getElementById("total-"+id).className = "total-val "+(comp===0?"ok":"bad");
     document.getElementById("comp-total-"+id).textContent = comp+"h";
     document.getElementById("comp-total-"+id).className = "comp-valor"+(comp===0?" ok":"");
+    const aj = ajustesManuales[emp] || 0;
+    document.getElementById("ajuste-"+id).textContent = (aj>=0?"+":"")+aj+"h";
   });
+}
+
+// ── AJUSTE MANUAL ────────────────────────────────────────────────
+function abrirAjusteManual() {
+  document.getElementById("modal-ajuste").style.display = "flex";
+  document.getElementById("modal-pin-wrap").style.display = "block";
+  document.getElementById("modal-form-wrap").style.display = "none";
+  document.getElementById("modal-pin").value = "";
+  document.getElementById("modal-pin-error").style.display = "none";
+}
+function cerrarAjuste() {
+  document.getElementById("modal-ajuste").style.display = "none";
+}
+function verificarPin() {
+  if (document.getElementById("modal-pin").value === PIN_ADMIN) {
+    document.getElementById("modal-pin-wrap").style.display = "none";
+    document.getElementById("modal-form-wrap").style.display = "block";
+    document.getElementById("adj-diego").value = ajustesManuales.Diego || 0;
+    document.getElementById("adj-jesus").value = ajustesManuales.Jesus || 0;
+    document.getElementById("adj-alvarez").value = ajustesManuales.Alvarez || 0;
+  } else {
+    document.getElementById("modal-pin-error").style.display = "block";
+  }
+}
+function guardarAjuste() {
+  ajustesManuales.Diego   = parseFloat(document.getElementById("adj-diego").value) || 0;
+  ajustesManuales.Jesus   = parseFloat(document.getElementById("adj-jesus").value) || 0;
+  ajustesManuales.Alvarez = parseFloat(document.getElementById("adj-alvarez").value) || 0;
+  localStorage.setItem("codek_ajustes", JSON.stringify(ajustesManuales));
+  cerrarAjuste();
+  renderResumen();
+  renderStats();
 }
 
 // ── INFORME ──────────────────────────────────────────────────────
@@ -837,7 +930,7 @@ function calcTareas(emp, desde, hasta) {
 }
 function setInfEmp(emp) {
   infEmp = emp;
-  ["ambos","Diego","Jesus"].forEach(e => document.getElementById("inf-btn-"+e).classList.toggle("active",e===emp));
+  ["todos","Diego","Jesus","Alvarez"].forEach(e => { const el=document.getElementById("inf-btn-"+e); if(el) el.classList.toggle("active",e===emp); });
   renderInforme();
 }
 function setPeriodo(p) {
@@ -848,7 +941,7 @@ function setPeriodo(p) {
 }
 function renderInforme() {
   const {desde,hasta} = getRangoActual();
-  const emps = infEmp==="ambos"?["Diego","Jesus"]:[infEmp];
+  const emps = infEmp==="todos"?["Diego","Jesus","Alvarez"]:[infEmp];
   const combinado = {}; Object.keys(LABOR_COLORS).forEach(l => combinado[l]=0);
   let bodyHtml = "";
 
@@ -892,32 +985,39 @@ function renderInforme() {
 let calAnio = new Date().getFullYear();
 let calMes  = new Date().getMonth();
 
+function objetivoSemana(lunesKey) {
+  return lunesKey >= FECHA_CAMBIO_OBJETIVO ? OBJETIVO_SEMANA_NUEVO : OBJETIVO_SEMANA;
+}
+
 function calcSaldo(emp, domingoKey, hoyStr) {
   var saldo = HORAS_INICIALES[emp];
-  var d = new Date(FECHA_INICIO + "T12:00:00");
+  var fechaInicioEmp = (emp === "Alvarez") ? FECHA_CAMBIO_OBJETIVO : FECHA_INICIO;
+  var d = new Date(fechaInicioEmp + "T12:00:00");
   var lunesInicio = new Date(d.getTime());
   lunesInicio.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   var cur = new Date(lunesInicio.getTime());
-  for (var iter = 0; iter < 60; iter++) {
+  for (var iter = 0; iter < 100; iter++) {
+    var lKey = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
     var domingo = new Date(cur.getTime());
     domingo.setDate(cur.getDate() + 6);
     var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
     if (dKey >= hoyStr) break;
     if (dKey > domingoKey) break;
     var hrs = 0, vac = 0;
-    for (var i = 0; i < 7; i++) {  // todos los días, no solo L-V
+    for (var i = 0; i < 7; i++) {
       var dia = new Date(cur.getTime());
       dia.setDate(cur.getDate() + i);
       var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
-      if (fk < FECHA_INICIO) continue;
-      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; } // vacaciones solo cuentan en días laborables
+      if (fk < fechaInicioEmp) continue;
+      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; }
       else { hrs += horasDelDia(emp, fk); }
     }
-    var obj = Math.max(0, OBJETIVO_SEMANA - vac * OBJETIVO_DIA);
-    saldo = saldo - (hrs - obj);
+    var objSem = Math.max(0, objetivoSemana(lKey) - vac * OBJETIVO_DIA);
+    saldo = saldo - (hrs - objSem);
     if (saldo < 0) saldo = 0;
     cur.setDate(cur.getDate() + 7);
   }
+  saldo = Math.max(0, saldo + (ajustesManuales[emp] || 0));
   return saldo;
 }
 
@@ -964,23 +1064,27 @@ function renderCalendario() {
     const semCerrada = domingoKey < hoyStr;
 
     // Horas totales de la semana (todos los días) y vacaciones laborables L-V
-    let totD = 0, totJ = 0, vacD = 0, vacJ = 0;
+    let totD = 0, totJ = 0, totA = 0, vacD = 0, vacJ = 0, vacA = 0;
     diasSemana.forEach(({fechaStr, dow}) => {
       if (esDiaVacaciones("Diego", fechaStr)) { if (dow < 5) vacD++; }
       else totD += horasDelDia("Diego", fechaStr);
       if (esDiaVacaciones("Jesus", fechaStr)) { if (dow < 5) vacJ++; }
       else totJ += horasDelDia("Jesus", fechaStr);
+      if (esDiaVacaciones("Alvarez", fechaStr)) { if (dow < 5) vacA++; }
+      else totA += horasDelDia("Alvarez", fechaStr);
     });
 
     // Objetivo de esta semana para mostrar en pantalla
-    const objD = Math.max(0, OBJETIVO_SEMANA - vacD*OBJETIVO_DIA);
-    const objJ = Math.max(0, OBJETIVO_SEMANA - vacJ*OBJETIVO_DIA);
+    const objD = Math.max(0, objetivoSemana(lunesKey) - vacD*OBJETIVO_DIA);
+    const objJ = Math.max(0, objetivoSemana(lunesKey) - vacJ*OBJETIVO_DIA);
+    const objA = Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA);
     const balD = totD - objD;
     const balJ = totJ - objJ;
 
     // Saldo acumulado al cierre de esta semana
     const saldoD = semCerrada ? calcSaldo("Diego", domingoKey, hoyStr) : null;
     const saldoJ = semCerrada ? calcSaldo("Jesus", domingoKey, hoyStr) : null;
+    const saldoA = semCerrada ? calcSaldo("Alvarez", domingoKey, hoyStr) : null;
 
     // Renderizar días
     let semHtml = "";
@@ -1030,8 +1134,10 @@ function renderCalendario() {
 
     semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px;border-left:2px solid rgba(151,39,46,0.4)">
       ${bloque("Diego","#97272E",totD,objD,balD,saldoD)}
-      <div style="border-top:1px solid #222;margin:4px 0"></div>
+      <div style="border-top:1px solid #222;margin:3px 0"></div>
       ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ)}
+      <div style="border-top:1px solid #222;margin:3px 0"></div>
+      ${bloque("Álvarez","#2E7D32",totA,Math.max(0,objetivoSemana(lunesKey)-vacA*OBJETIVO_DIA),totA-Math.max(0,objetivoSemana(lunesKey)-vacA*OBJETIVO_DIA),saldoA)}
     </div>`;
 
     html += semHtml;
