@@ -1133,13 +1133,14 @@ function renderCalendario() {
       </div>`;
     };
 
+    const objA_cal = lunesKey >= FECHA_CAMBIO_OBJETIVO ? Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA) : 0;
+    const balA_cal = totA - objA_cal;
     semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px;border-left:2px solid rgba(151,39,46,0.4)">
       ${bloque("Diego","#97272E",totD,objD,balD,saldoD)}
       <div style="border-top:1px solid #222;margin:3px 0"></div>
       ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ)}
       <div style="border-top:1px solid #222;margin:3px 0"></div>
-      const objA_cal = lunesKey >= FECHA_CAMBIO_OBJETIVO ? Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA) : 0;
-      ${bloque("Álvarez","#2E7D32",totA,objA_cal,totA-objA_cal,saldoA)}
+      ${bloque("Álvarez","#2E7D32",totA,objA_cal,balA_cal,saldoA)}
     </div>`;
 
     html += semHtml;
