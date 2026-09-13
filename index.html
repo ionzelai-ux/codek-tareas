@@ -1099,13 +1099,14 @@ function renderCalendario() {
       if (!esMes) cls += " otro-mes";
       if (esHoy)  cls += " hoy";
       if (esFS)   cls += " fin-semana";
-      if (esDiaVacaciones("Diego",fechaStr)||esDiaVacaciones("Jesus",fechaStr)) cls += " vacaciones";
+      if (esDiaVacaciones("Diego",fechaStr)||esDiaVacaciones("Jesus",fechaStr)||esDiaVacaciones("Alvarez",fechaStr)) cls += " vacaciones";
 
       const mesLbl = !esMes ? `<span style="font-size:8px;color:#555;margin-left:2px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
 
       const rows = [
-        {empKey:"Diego", label:"Diego", h:hD, color:"#97272E"},
-        {empKey:"Jesus", label:"Jesús", h:hJ, color:"#1565C0"}
+        {empKey:"Diego",   label:"Diego",   h:hD, color:"#97272E"},
+        {empKey:"Jesus",   label:"Jesús",   h:hJ, color:"#1565C0"},
+        {empKey:"Alvarez", label:"Álvarez", h:horasDelDia("Alvarez",fechaStr), color:"#2E7D32"}
       ].map(({empKey, label, h, color}) => {
         if (esDiaVacaciones(empKey, fechaStr))
           return `<div class="cal-emp-row"><span style="background:${color}" class="cal-emp-dot"></span><span class="cal-vac-label">☀ vac</span></div>`;
@@ -1137,7 +1138,8 @@ function renderCalendario() {
       <div style="border-top:1px solid #222;margin:3px 0"></div>
       ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ)}
       <div style="border-top:1px solid #222;margin:3px 0"></div>
-      ${bloque("Álvarez","#2E7D32",totA,Math.max(0,objetivoSemana(lunesKey)-vacA*OBJETIVO_DIA),totA-Math.max(0,objetivoSemana(lunesKey)-vacA*OBJETIVO_DIA),saldoA)}
+      const objA_cal = lunesKey >= FECHA_CAMBIO_OBJETIVO ? Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA) : 0;
+      ${bloque("Álvarez","#2E7D32",totA,objA_cal,totA-objA_cal,saldoA)}
     </div>`;
 
     html += semHtml;
