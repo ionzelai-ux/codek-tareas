@@ -1011,7 +1011,7 @@ function calcSaldo(emp, domingoKey, hoyStr) {
     var domingo = new Date(cur.getTime());
     domingo.setDate(cur.getDate() + 6);
     var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
-    if (dKey >= hoyStr) break;
+    if (dKey > hoyStr) break;  // procesar hasta hoy inclusive (si hoy es domingo, incluye esta semana)
     if (dKey > domingoKey) break;
     var hrs = 0, vac = 0;
     for (var i = 0; i < 7; i++) {
@@ -1045,7 +1045,7 @@ function calcSaldoConAjustes(emp, domingoKey, hoyStr) {
     var lKey = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
     var domingo = new Date(cur.getTime()); domingo.setDate(cur.getDate() + 6);
     var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
-    if (dKey >= hoyStr) break;
+    if (dKey > hoyStr) break;  // incluye domingo de hoy si hoy es domingo
     if (dKey > domingoKey) break;
 
     // Si hay ajuste manual para este lunes, usarlo directamente como saldo al cierre
@@ -1111,7 +1111,7 @@ function renderCalendario() {
 
     const domingoKey = diasSemana[6].fechaStr;
     const lunesKey   = diasSemana[0].fechaStr;
-    const semCerrada = domingoKey < hoyStr;
+    const semCerrada = domingoKey <= hoyStr;
 
     // Horas totales de la semana (todos los días) y vacaciones laborables L-V
     let totD = 0, totJ = 0, totA = 0, vacD = 0, vacJ = 0, vacA = 0;
