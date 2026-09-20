@@ -187,6 +187,10 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .inf-combined-head { background: var(--gris-oscuro); padding: 13px 18px; border-bottom: 1px solid var(--gris-borde); font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gris-texto); }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
+.admin-edit-input { background: rgba(151,39,46,0.15); border: 1px solid var(--granate); border-radius: 3px; color: var(--blanco); font-family: "Space Mono", monospace; font-size: 11px; padding: 2px 6px; width: 50px; text-align: center; }
+.admin-semana-wrap { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.admin-save-btn { font-family: "Space Mono", monospace; font-size: 9px; padding: 2px 8px; border-radius: 2px; border: none; background: var(--granate); color: #fff; cursor: pointer; }
+.admin-badge { display: inline-block; background: var(--granate); color: #fff; font-family: "Space Mono", monospace; font-size: 9px; padding: 2px 7px; border-radius: 2px; letter-spacing: 0.08em; }
 ::-webkit-scrollbar-track { background: var(--gris-oscuro); }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 </style>
@@ -202,6 +206,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
   <img class="topbar-logo" src="logo.png" alt="CODEK Training">
   <div class="topbar-right">
     <span class="topbar-title">Control de Tareas</span>
+    <button id="btn-admin" onclick="toggleAdmin()" style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">⚙ Admin</button>
     <span class="sync-indicator" id="sync-indicator">Sincronizando...</span>
   </div>
 </div>
@@ -516,6 +521,9 @@ const VAC_PREVIAS = { Diego: 1, Jesus: 8, Alvarez: 0 };
 // Ajustes manuales de saldo { emp: horas } — protegidos por PIN
 let ajustesManuales = { Diego: 0, Jesus: 0, Alvarez: 0 };
 const PIN_ADMIN = "mnk";
+let modoAdmin = false;
+// ajustesSemana: { "Diego": { "2026-07-06": 5.0 }, ... }  — lunes como clave
+let ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
 
 // ── INIT ─────────────────────────────────────────────────────────
 async function init() {
@@ -526,11 +534,14 @@ async function init() {
   if (vacGuardadas) vacaciones = JSON.parse(vacGuardadas);
   const adjGuardados = localStorage.getItem("codek_ajustes");
   if (adjGuardados) ajustesManuales = JSON.parse(adjGuardados);
+  const adjSemGuardados = localStorage.getItem("codek_ajustes_semana");
+  if (adjSemGuardados) ajustesSemana = JSON.parse(adjSemGuardados);
   try {
     const res = await fetch(SCRIPT_URL + "?accion=todos");
     const json = await res.json();
     if (json.ok) {
       datos = json.datos || {};
+      if (json.ajustes) ajustesSemana = Object.assign({Diego:{},Jesus:{},Alvarez:{}}, json.ajustes);
       setSyncStatus("ok", "Conectado · Sheets");
     } else throw new Error(json.error);
   } catch(err) {
@@ -609,8 +620,7 @@ function horasTotal(emp) {
   return Object.keys(datos[emp]).reduce((t,f) => t + horasDelDia(emp,f), 0);
 }
 function horasACompensar(emp) {
-  // Usa exactamente la misma lógica que el calendario
-  return calcSaldo(emp, hoy(), hoy());
+  return calcSaldoConAjustes(emp, hoy(), hoy());
 }
 
 // ── LEYENDA ──────────────────────────────────────────────────────
@@ -1017,7 +1027,47 @@ function calcSaldo(emp, domingoKey, hoyStr) {
     if (saldo < 0) saldo = 0;
     cur.setDate(cur.getDate() + 7);
   }
-  saldo = Math.max(0, saldo + (ajustesManuales[emp] || 0));
+  // No usar ajustesManuales legacy — ahora se usa ajustesSemana
+  return saldo;
+}
+
+// Calcula saldo acumulado hasta el DOMINGO de la semana indicada,
+// respetando overrides manuales por semana
+function calcSaldoConAjustes(emp, domingoKey, hoyStr) {
+  var fechaInicioEmp = (emp === "Alvarez") ? FECHA_CAMBIO_OBJETIVO : FECHA_INICIO;
+  var d = new Date(fechaInicioEmp + "T12:00:00");
+  var lunesInicio = new Date(d.getTime());
+  lunesInicio.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  var cur = new Date(lunesInicio.getTime());
+  var saldo = HORAS_INICIALES[emp];
+
+  for (var iter = 0; iter < 100; iter++) {
+    var lKey = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
+    var domingo = new Date(cur.getTime()); domingo.setDate(cur.getDate() + 6);
+    var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
+    if (dKey >= hoyStr) break;
+    if (dKey > domingoKey) break;
+
+    // Si hay ajuste manual para este lunes, usarlo directamente como saldo al cierre
+    if (ajustesSemana[emp] && ajustesSemana[emp][lKey] !== undefined) {
+      saldo = ajustesSemana[emp][lKey];
+      cur.setDate(cur.getDate() + 7);
+      continue;
+    }
+
+    var hrs = 0, vac = 0;
+    for (var i = 0; i < 7; i++) {
+      var dia = new Date(cur.getTime()); dia.setDate(cur.getDate() + i);
+      var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
+      if (fk < fechaInicioEmp) continue;
+      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; }
+      else { hrs += horasDelDia(emp, fk); }
+    }
+    var objSem = Math.max(0, objetivoSemana(lKey) - vac * OBJETIVO_DIA);
+    saldo = saldo - (hrs - objSem);
+    if (saldo < 0) saldo = 0;
+    cur.setDate(cur.getDate() + 7);
+  }
   return saldo;
 }
 
@@ -1082,9 +1132,9 @@ function renderCalendario() {
     const balJ = totJ - objJ;
 
     // Saldo acumulado al cierre de esta semana
-    const saldoD = semCerrada ? calcSaldo("Diego", domingoKey, hoyStr) : null;
-    const saldoJ = semCerrada ? calcSaldo("Jesus", domingoKey, hoyStr) : null;
-    const saldoA = semCerrada ? calcSaldo("Alvarez", domingoKey, hoyStr) : null;
+    const saldoD = semCerrada ? calcSaldoConAjustes("Diego", domingoKey, hoyStr) : null;
+    const saldoJ = semCerrada ? calcSaldoConAjustes("Jesus", domingoKey, hoyStr) : null;
+    const saldoA = semCerrada ? calcSaldoConAjustes("Alvarez", domingoKey, hoyStr) : null;
 
     // Renderizar días
     let semHtml = "";
@@ -1118,17 +1168,23 @@ function renderCalendario() {
     });
 
     // Columna resumen — compacta, una tabla por persona
-    const bloque = (nombre, color, tot, obj, bal, saldo) => {
+    const bloque = (nombre, color, tot, obj, bal, saldo, empKey, lunesKey) => {
       const cH = tot>=obj?"ok":tot>=obj*.7?"warn":tot>0?"bad":"vacio";
       const sc = saldo===0?"var(--verde)":"var(--granate)";
+      const tieneAjuste = ajustesSemana[empKey] && ajustesSemana[empKey][lunesKey] !== undefined;
+      const ajusteLbl = tieneAjuste ? `<span style="font-size:8px;color:var(--amarillo)"> ✎</span>` : "";
+      const adminBtn = modoAdmin && semCerrada
+        ? `<button onclick="editarSaldo('${empKey}','${lunesKey}',${saldo})" class="admin-save-btn" style="margin-top:3px">✎ editar</button>`
+        : "";
       return `<div style="margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:4px">
           <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
-          <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
+          <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>${ajusteLbl}
         </div>
         <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;line-height:1.7;color:var(--gris-texto)">
           <span class="cal-emp-hrs ${cH}">${tot}h</span><span> / ${obj}h</span><br>
           ${semCerrada ? fmtSem(bal)+"<br><span style='color:"+sc+";font-weight:700'>⬤ "+saldo+"h</span>" : "<span style='font-size:9px'>en curso</span>"}
+          ${adminBtn}
         </div>
       </div>`;
     };
@@ -1136,11 +1192,11 @@ function renderCalendario() {
     const objA_cal = lunesKey >= FECHA_CAMBIO_OBJETIVO ? Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA) : 0;
     const balA_cal = totA - objA_cal;
     semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px;border-left:2px solid rgba(151,39,46,0.4)">
-      ${bloque("Diego","#97272E",totD,objD,balD,saldoD)}
+      ${bloque("Diego","#97272E",totD,objD,balD,saldoD,"Diego",lunesKey)}
       <div style="border-top:1px solid #222;margin:3px 0"></div>
-      ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ)}
+      ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ,"Jesus",lunesKey)}
       <div style="border-top:1px solid #222;margin:3px 0"></div>
-      ${bloque("Álvarez","#2E7D32",totA,objA_cal,balA_cal,saldoA)}
+      ${bloque("Álvarez","#2E7D32",totA,objA_cal,balA_cal,saldoA,"Alvarez",lunesKey)}
     </div>`;
 
     html += semHtml;
@@ -1155,6 +1211,63 @@ function abrirDia(fechaStr) {
   showTab("registro");
   renderGrid();
   renderStats();
+}
+// ── MODO ADMINISTRADOR ───────────────────────────────────────────
+function toggleAdmin() {
+  if (modoAdmin) {
+    modoAdmin = false;
+    document.getElementById("btn-admin").style.borderColor = "var(--gris-borde)";
+    document.getElementById("btn-admin").style.color = "var(--gris-texto)";
+    document.getElementById("btn-admin").textContent = "⚙ Admin";
+    if (document.getElementById("tab-calendario").classList.contains("hidden") === false) {
+      renderCalendario();
+    }
+    return;
+  }
+  // Pedir PIN
+  var pin = prompt("PIN de administrador:");
+  if (pin === PIN_ADMIN) {
+    modoAdmin = true;
+    document.getElementById("btn-admin").style.borderColor = "var(--granate)";
+    document.getElementById("btn-admin").style.color = "var(--granate)";
+    document.getElementById("btn-admin").textContent = "⚙ Admin ON";
+    if (document.getElementById("tab-calendario").classList.contains("hidden") === false) {
+      renderCalendario();
+    }
+    alert("Modo administrador activado. Ahora puedes editar el saldo de cada semana directamente en el calendario.");
+  } else if (pin !== null) {
+    alert("PIN incorrecto");
+  }
+}
+
+function editarSaldo(emp, lunesKey, saldoActual) {
+  var nuevo = prompt("Nuevo saldo a compensar para " + NOMBRES[emp] + "\nSemana del " + lunesKey + ":\n(Deja vacío para quitar el ajuste manual)", saldoActual);
+  if (nuevo === null) return; // cancelado
+  if (nuevo.trim() === "") {
+    // Borrar ajuste
+    if (ajustesSemana[emp]) delete ajustesSemana[emp][lunesKey];
+    guardarAjusteEnSheets(emp, lunesKey, null);
+  } else {
+    var val = parseFloat(nuevo.replace(",", "."));
+    if (isNaN(val) || val < 0) { alert("Valor inválido. Introduce un número >= 0"); return; }
+    if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
+    ajustesSemana[emp][lunesKey] = val;
+    guardarAjusteEnSheets(emp, lunesKey, val);
+  }
+  renderCalendario();
+  renderResumen();
+}
+
+async function guardarAjusteEnSheets(emp, semana, horas) {
+  try {
+    if (horas === null) {
+      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "borrarAjuste", emp, semana }) });
+    } else {
+      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "guardarAjuste", emp, semana, horas }) });
+    }
+  } catch(e) {
+    localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+  }
 }
 </script>
 </body>
