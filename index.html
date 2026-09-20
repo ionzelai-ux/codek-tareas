@@ -1169,42 +1169,53 @@ function renderCalendario() {
 
     // Columna resumen — compacta, una tabla por persona
     const bloque = (nombre, color, tot, obj, bal, saldo, empKey, lunesKey) => {
-      // Aplicar ajuste si existe
       const aj = ajustesSemana[empKey] || {};
-      const hrsEfectivas  = (aj[lunesKey+"_hrs"] !== undefined) ? aj[lunesKey+"_hrs"]  : tot;
-      const objEfectivo   = (aj[lunesKey+"_obj"] !== undefined) ? aj[lunesKey+"_obj"]  : obj;
-      const saldoEfectivo = (aj[lunesKey]        !== undefined) ? aj[lunesKey]         : saldo;
-      const balEfectivo   = hrsEfectivas - objEfectivo;
-      const cH = hrsEfectivas>=objEfectivo?"ok":hrsEfectivas>=objEfectivo*.7?"warn":hrsEfectivas>0?"bad":"vacio";
+      const objEfectivo   = (aj[lunesKey+"_obj"] !== undefined) ? aj[lunesKey+"_obj"] : obj;
+      const varEfectiva   = (aj[lunesKey+"_var"] !== undefined) ? aj[lunesKey+"_var"] : bal;
+      const saldoEfectivo = (aj[lunesKey]        !== undefined) ? aj[lunesKey]        : saldo;
+      const cH = tot>=objEfectivo?"ok":tot>=objEfectivo*.7?"warn":tot>0?"bad":"vacio";
       const sc = saldoEfectivo===0?"var(--verde)":"var(--granate)";
+      const vc = varEfectiva>=0?"var(--granate)":"var(--verde)";
 
       if (modoAdmin && semCerrada) {
-        const tieneAjuste = aj[lunesKey] !== undefined;
+        const uid = empKey+"__"+lunesKey.replace(/-/g,"");
         return `<div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
             <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
             <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
           </div>
-          <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--gris-texto)">
-            <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
-              <span style="color:#666">hrs</span>
-              <input type="number" step="0.5" value="${hrsEfectivas}"
-                onchange="stageAjuste('${empKey}','${lunesKey}','hrs',this.value)"
-                style="background:rgba(255,255,255,0.08);border:1px solid #555;border-radius:2px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:10px;padding:2px 4px;width:50px;text-align:center">
-              <span style="color:#666">/ ${objEfectivo}h obj</span>
+          <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--gris-texto);line-height:2">
+            <div style="display:flex;align-items:center;gap:5px">
+              <span>obj</span>
+              <input id="obj_${uid}" type="number" step="0.5" value="${objEfectivo}"
+                oninput="markDirty('${uid}')"
+                style="background:#1a1a1a;border:1px solid #444;border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
+              <span>h</span>
             </div>
-            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
-              <span style="color:#666">saldo</span>
-              <input type="number" step="0.5" value="${saldoEfectivo}"
-                onchange="stageAjuste('${empKey}','${lunesKey}','saldo',this.value)"
-                style="background:rgba(151,39,46,0.15);border:1px solid var(--granate);border-radius:2px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:10px;padding:2px 4px;width:50px;text-align:center">
-              <button onclick="commitAjuste('${empKey}','${lunesKey}')" class="admin-save-btn">✓</button>
-              ${tieneAjuste ? `<button onclick="borrarAjusteInline('${empKey}','${lunesKey}')" class="admin-save-btn" style="background:#555">✕</button>` : ""}
+            <div style="display:flex;align-items:center;gap:5px">
+              <span>var</span>
+              <input id="var_${uid}" type="number" step="0.5" value="${varEfectiva}"
+                oninput="markDirty('${uid}')"
+                style="background:#1a1a1a;border:1px solid #444;border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
+              <span>h</span>
             </div>
-            <span class="cal-emp-hrs ${cH}" style="padding-left:0">${hrsEfectivas}h</span>
-            <span style="color:#555"> / ${objEfectivo}h · </span>
-            ${fmtSem(balEfectivo)}
-            <span style="color:${sc};font-weight:700"> ⬤ ${saldoEfectivo}h</span>
+            <div style="display:flex;align-items:center;gap:5px">
+              <span>⬤</span>
+              <input id="saldo_${uid}" type="number" step="0.5" value="${saldoEfectivo}"
+                oninput="markDirty('${uid}')"
+                style="background:#1a1a1a;border:1px solid var(--granate);border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
+              <span>h</span>
+            </div>
+            <div id="guardar_${uid}" style="display:none;margin-top:4px;display:flex;gap:5px;align-items:center">
+              <button onclick="commitAjuste('${empKey}','${lunesKey}','${uid}')"
+                style="font-family:'Space Mono',monospace;font-size:9px;padding:3px 10px;border-radius:2px;border:none;background:var(--granate);color:#fff;cursor:pointer;letter-spacing:0.08em">
+                GUARDAR
+              </button>
+              ${aj[lunesKey] !== undefined ? `<button onclick="borrarAjusteInline('${empKey}','${lunesKey}','${uid}')"
+                style="font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:2px;border:1px solid #555;background:transparent;color:#999;cursor:pointer">
+                reset
+              </button>` : ""}
+            </div>
           </div>
         </div>`;
       }
@@ -1215,8 +1226,10 @@ function renderCalendario() {
           <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
         </div>
         <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;line-height:1.7;color:var(--gris-texto)">
-          <span class="cal-emp-hrs ${cH}">${hrsEfectivas}h</span><span> / ${objEfectivo}h</span><br>
-          ${semCerrada ? fmtSem(balEfectivo)+"<br><span style='color:"+sc+";font-weight:700'>⬤ "+saldoEfectivo+"h</span>" : "<span style='font-size:9px'>en curso</span>"}
+          <span class="cal-emp-hrs ${cH}">${tot}h</span><span> / ${objEfectivo}h</span><br>
+          ${semCerrada
+            ? `<span style="color:${vc}">${varEfectiva>=0?"+":""}${varEfectiva}h</span><br><span style="color:${sc};font-weight:700">⬤ ${saldoEfectivo}h</span>`
+            : "<span style='font-size:9px'>en curso</span>"}
         </div>
       </div>`;
     };
@@ -1272,73 +1285,47 @@ function toggleAdmin() {
   }
 }
 
-// Buffer temporal para ediciones admin (evita perder valores al rerenderizar)
 var pendingAjustes = {};
 
-function stageAjuste(emp, lunesKey, campo, valor) {
-  // Guarda en buffer sin rerenderizar
-  var key = emp + "_" + lunesKey;
-  if (!pendingAjustes[key]) {
-    pendingAjustes[key] = {
-      emp: emp,
-      lunesKey: lunesKey,
-      hrs: (ajustesSemana[emp] && ajustesSemana[emp][lunesKey+"_hrs"] !== undefined)
-        ? ajustesSemana[emp][lunesKey+"_hrs"]
-        : (parseFloat(document.getElementById("hrs_"+emp+"_"+lunesKey) ? document.getElementById("hrs_"+emp+"_"+lunesKey).value : 0) || 0),
-      saldo: (ajustesSemana[emp] && ajustesSemana[emp][lunesKey] !== undefined)
-        ? ajustesSemana[emp][lunesKey]
-        : 0
-    };
-  }
-  pendingAjustes[key][campo] = parseFloat(String(valor).replace(",",".")) || 0;
+function markDirty(uid) {
+  // Muestra el botón GUARDAR cuando se edita algo
+  var el = document.getElementById("guardar_"+uid);
+  if (el) el.style.display = "flex";
 }
 
-function commitAjuste(emp, lunesKey) {
-  var key = emp + "_" + lunesKey;
-  // Leer directamente del DOM en el momento de confirmar
-  var hrsEl   = document.getElementById("hrs_"  +emp+"_"+lunesKey);
-  var saldoEl = document.getElementById("saldo_"+emp+"_"+lunesKey);
-  var hrs   = hrsEl   ? (parseFloat(hrsEl.value)   || 0) : (pendingAjustes[key] ? pendingAjustes[key].hrs   : 0);
-  var saldo = saldoEl ? (parseFloat(saldoEl.value) || 0) : (pendingAjustes[key] ? pendingAjustes[key].saldo : 0);
-  if (isNaN(saldo) || saldo < 0) { alert("Saldo inválido"); return; }
+function commitAjuste(emp, lunesKey, uid) {
+  var objEl   = document.getElementById("obj_"  +uid);
+  var varEl   = document.getElementById("var_"  +uid);
+  var saldoEl = document.getElementById("saldo_"+uid);
+  if (!saldoEl) return;
+  var objV   = parseFloat(objEl   ? objEl.value   : 0) || 0;
+  var varV   = parseFloat(varEl   ? varEl.value   : 0) || 0;
+  var saldoV = parseFloat(saldoEl ? saldoEl.value : 0);
+  if (isNaN(saldoV) || saldoV < 0) { alert("Saldo inválido"); return; }
   if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
-  // Obtener objetivo del cálculo automático (no se edita)
-  var objActual = ajustesSemana[emp][lunesKey+"_obj"];
-  if (objActual === undefined) {
-    // Inferir del DOM si está disponible
-    var objEl = document.getElementById("obj_"+emp+"_"+lunesKey);
-    objActual = objEl ? (parseFloat(objEl.value) || 0) : undefined;
-  }
-  ajustesSemana[emp][lunesKey]        = saldo;
-  ajustesSemana[emp][lunesKey+"_hrs"] = hrs;
-  if (objActual !== undefined) ajustesSemana[emp][lunesKey+"_obj"] = objActual;
-  delete pendingAjustes[key];
+  ajustesSemana[emp][lunesKey]        = saldoV;
+  ajustesSemana[emp][lunesKey+"_obj"] = objV;
+  ajustesSemana[emp][lunesKey+"_var"] = varV;
   localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
-  guardarAjusteEnSheets(emp, lunesKey, saldo);
-  // Rerenderizar DESPUÉS de guardar
+  guardarAjusteEnSheets(emp, lunesKey, saldoV);
   renderCalendario();
   renderResumen();
 }
 
-function guardarAjusteInline(emp, lunesKey) {
-  commitAjuste(emp, lunesKey);
-}
-
-function borrarAjusteInline(emp, lunesKey) {
+function borrarAjusteInline(emp, lunesKey, uid) {
   if (!ajustesSemana[emp]) return;
   delete ajustesSemana[emp][lunesKey];
-  delete ajustesSemana[emp][lunesKey+"_hrs"];
   delete ajustesSemana[emp][lunesKey+"_obj"];
-  delete pendingAjustes[emp+"_"+lunesKey];
+  delete ajustesSemana[emp][lunesKey+"_var"];
   localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
   guardarAjusteEnSheets(emp, lunesKey, null);
   renderCalendario();
   renderResumen();
 }
 
-function editarSaldo(emp, lunesKey, saldoActual) {
-  commitAjuste(emp, lunesKey);
-}
+function editarSaldo(emp, lunesKey, saldoActual) {}
+function guardarAjusteInline(emp, lunesKey) {}
+function stageAjuste(emp, lunesKey, campo, valor) {}
 
 async function guardarAjusteEnSheets(emp, semana, horas) {
   try {
