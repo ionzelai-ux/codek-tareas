@@ -529,19 +529,26 @@ let ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
 async function init() {
   setSyncStatus("loading", "Sincronizando...");
   renderLeyenda();
-  // Cargar vacaciones guardadas localmente
+  // Cargar desde localStorage como fallback inmediato
   const vacGuardadas = localStorage.getItem("codek_vacaciones");
   if (vacGuardadas) vacaciones = JSON.parse(vacGuardadas);
   const adjGuardados = localStorage.getItem("codek_ajustes");
   if (adjGuardados) ajustesManuales = JSON.parse(adjGuardados);
   const adjSemGuardados = localStorage.getItem("codek_ajustes_semana");
-  if (adjSemGuardados) ajustesSemana = JSON.parse(adjSemGuardados);
+  if (adjSemGuardados) { try { ajustesSemana = JSON.parse(adjSemGuardados); } catch(e) {} }
   try {
     const res = await fetch(SCRIPT_URL + "?accion=todos");
     const json = await res.json();
     if (json.ok) {
       datos = json.datos || {};
-      if (json.ajustes) ajustesSemana = Object.assign({Diego:{},Jesus:{},Alvarez:{}}, json.ajustes);
+      // Sheets tiene prioridad — sobreescribe localStorage
+      if (json.ajustes) {
+        ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
+        Object.keys(json.ajustes).forEach(emp => {
+          if (json.ajustes[emp]) ajustesSemana[emp] = json.ajustes[emp];
+        });
+        localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+      }
       setSyncStatus("ok", "Conectado · Sheets");
     } else throw new Error(json.error);
   } catch(err) {
@@ -1327,15 +1334,22 @@ function editarSaldo(emp, lunesKey, saldoActual) {}
 function guardarAjusteInline(emp, lunesKey) {}
 function stageAjuste(emp, lunesKey, campo, valor) {}
 
-async function guardarAjusteEnSheets(emp, semana, horas) {
+async function guardarAjusteEnSheets(emp, semana, saldo) {
+  const aj = ajustesSemana[emp] || {};
+  const obj  = aj[semana+"_obj"] !== undefined ? aj[semana+"_obj"] : 0;
+  const varh = aj[semana+"_var"] !== undefined ? aj[semana+"_var"] : 0;
   try {
-    if (horas === null) {
+    if (saldo === null) {
       await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "borrarAjuste", emp, semana }) });
     } else {
-      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "guardarAjuste", emp, semana, horas }) });
+      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "guardarAjuste", emp, semana, saldo, obj, varh }) });
     }
-  } catch(e) {
+    // Actualizar localStorage como copia de seguridad
     localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+  } catch(e) {
+    // Si falla Sheets, al menos localStorage tiene la copia
+    localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+    console.warn("Ajuste guardado solo en localStorage:", e);
   }
 }
 </script>
