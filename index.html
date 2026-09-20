@@ -1173,9 +1173,42 @@ function renderCalendario() {
       const sc = saldo===0?"var(--verde)":"var(--granate)";
       const tieneAjuste = ajustesSemana[empKey] && ajustesSemana[empKey][lunesKey] !== undefined;
       const ajusteLbl = tieneAjuste ? `<span style="font-size:8px;color:var(--amarillo)"> ✎</span>` : "";
-      const adminBtn = modoAdmin && semCerrada
-        ? `<button onclick="editarSaldo('${empKey}','${lunesKey}',${saldo})" class="admin-save-btn" style="margin-top:3px">✎ editar</button>`
-        : "";
+
+      // En modo admin y semana cerrada: mostrar campos editables inline
+      if (modoAdmin && semCerrada) {
+        const adjObj = ajustesSemana[empKey] && ajustesSemana[empKey][lunesKey+"_obj"] !== undefined
+          ? ajustesSemana[empKey][lunesKey+"_obj"] : obj;
+        const adjHrs = ajustesSemana[empKey] && ajustesSemana[empKey][lunesKey+"_hrs"] !== undefined
+          ? ajustesSemana[empKey][lunesKey+"_hrs"] : tot;
+        const adjBal = adjHrs - adjObj;
+        const adjSaldo = tieneAjuste ? ajustesSemana[empKey][lunesKey] : saldo;
+        const adjSc = adjSaldo===0?"var(--verde)":"var(--granate)";
+        return `<div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+            <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
+            <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>${ajusteLbl}
+          </div>
+          <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--gris-texto)">
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+              <span>hrs</span>
+              <input type="number" step="0.5" value="${adjHrs}" id="hrs_${empKey}_${lunesKey}"
+                style="background:rgba(255,255,255,0.08);border:1px solid #444;border-radius:2px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:10px;padding:1px 4px;width:48px;text-align:center">
+              <span>/ obj</span>
+              <input type="number" step="0.5" value="${adjObj}" id="obj_${empKey}_${lunesKey}"
+                style="background:rgba(255,255,255,0.08);border:1px solid #444;border-radius:2px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:10px;padding:1px 4px;width:48px;text-align:center">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span>saldo <b style="color:${adjSc}">${adjSaldo}h</b></span>
+              <input type="number" step="0.5" value="${adjSaldo}" id="saldo_${empKey}_${lunesKey}"
+                style="background:rgba(151,39,46,0.2);border:1px solid var(--granate);border-radius:2px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:10px;padding:1px 4px;width:48px;text-align:center">
+              <button onclick="guardarAjusteInline('${empKey}','${lunesKey}')" class="admin-save-btn">✓</button>
+              ${tieneAjuste ? `<button onclick="borrarAjusteInline('${empKey}','${lunesKey}')" class="admin-save-btn" style="background:#444">✕</button>` : ""}
+            </div>
+          </div>
+        </div>`;
+      }
+
+      // Vista normal
       return `<div style="margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:4px">
           <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
@@ -1184,7 +1217,6 @@ function renderCalendario() {
         <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;line-height:1.7;color:var(--gris-texto)">
           <span class="cal-emp-hrs ${cH}">${tot}h</span><span> / ${obj}h</span><br>
           ${semCerrada ? fmtSem(bal)+"<br><span style='color:"+sc+";font-weight:700'>⬤ "+saldo+"h</span>" : "<span style='font-size:9px'>en curso</span>"}
-          ${adminBtn}
         </div>
       </div>`;
     };
@@ -1240,22 +1272,38 @@ function toggleAdmin() {
   }
 }
 
-function editarSaldo(emp, lunesKey, saldoActual) {
-  var nuevo = prompt("Nuevo saldo a compensar para " + NOMBRES[emp] + "\nSemana del " + lunesKey + ":\n(Deja vacío para quitar el ajuste manual)", saldoActual);
-  if (nuevo === null) return; // cancelado
-  if (nuevo.trim() === "") {
-    // Borrar ajuste
-    if (ajustesSemana[emp]) delete ajustesSemana[emp][lunesKey];
-    guardarAjusteEnSheets(emp, lunesKey, null);
-  } else {
-    var val = parseFloat(nuevo.replace(",", "."));
-    if (isNaN(val) || val < 0) { alert("Valor inválido. Introduce un número >= 0"); return; }
-    if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
-    ajustesSemana[emp][lunesKey] = val;
-    guardarAjusteEnSheets(emp, lunesKey, val);
-  }
+function guardarAjusteInline(emp, lunesKey) {
+  const hrsEl   = document.getElementById("hrs_"+emp+"_"+lunesKey);
+  const objEl   = document.getElementById("obj_"+emp+"_"+lunesKey);
+  const saldoEl = document.getElementById("saldo_"+emp+"_"+lunesKey);
+  if (!saldoEl) return;
+  const hrs   = hrsEl   ? (parseFloat(hrsEl.value)   || 0) : 0;
+  const obj   = objEl   ? (parseFloat(objEl.value)   || 0) : 0;
+  const saldo = parseFloat(saldoEl.value);
+  if (isNaN(saldo) || saldo < 0) { alert("Saldo inválido"); return; }
+  if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
+  ajustesSemana[emp][lunesKey]          = saldo;
+  ajustesSemana[emp][lunesKey+"_hrs"]   = hrs;
+  ajustesSemana[emp][lunesKey+"_obj"]   = obj;
+  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+  guardarAjusteEnSheets(emp, lunesKey, saldo);
   renderCalendario();
   renderResumen();
+}
+
+function borrarAjusteInline(emp, lunesKey) {
+  if (!ajustesSemana[emp]) return;
+  delete ajustesSemana[emp][lunesKey];
+  delete ajustesSemana[emp][lunesKey+"_hrs"];
+  delete ajustesSemana[emp][lunesKey+"_obj"];
+  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+  guardarAjusteEnSheets(emp, lunesKey, null);
+  renderCalendario();
+  renderResumen();
+}
+
+function editarSaldo(emp, lunesKey, saldoActual) {
+  // Retrocompatibilidad — ahora se hace inline
 }
 
 async function guardarAjusteEnSheets(emp, semana, horas) {
