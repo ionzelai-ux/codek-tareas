@@ -243,7 +243,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
       <div class="stat">
         <div class="stat-label">Horas semana</div>
         <div class="stat-value" id="stat-semana">0h</div>
-        <div class="stat-sub">semana actual</div>
+        <div class="stat-sub" id="stat-semana-sub">semana actual</div>
       </div>
       <div class="stat">
         <div class="stat-label">Horas totales</div>
@@ -251,9 +251,9 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
         <div class="stat-sub">acumulado</div>
       </div>
       <div class="stat">
-        <div class="stat-label">A compensar</div>
+        <div class="stat-label">Saldo de horas</div>
         <div class="stat-value" id="stat-comp">0h</div>
-        <div class="stat-sub" id="stat-comp-sub">pendiente</div>
+        <div class="stat-sub" id="stat-comp-sub">—</div>
       </div>
       <div class="stat">
         <div class="stat-label">Vacaciones</div>
@@ -289,108 +289,9 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 
   <!-- TAB RESUMEN -->
   <div id="tab-resumen" class="hidden">
-    <div class="resumen-grid" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="r-card">
-        <div class="r-card-head">
-          <span class="r-card-title">Diego</span>
-          <span class="inicial-badge">Inicial: 3h a compensar</span>
-        </div>
-        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-diego"></tbody></table>
-        <div class="prog-wrap">
-          <div class="prog-label"><span>Progreso semanal</span><span id="prog-diego-txt">0h</span></div>
-          <div class="prog-bg"><div class="prog-fill" id="prog-diego" style="width:0%"></div></div>
-        </div>
-        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-diego">—</span></div>
-      </div>
-      <div class="r-card">
-        <div class="r-card-head">
-          <span class="r-card-title">Jesús</span>
-          <span class="inicial-badge">Inicial: 7h a compensar</span>
-        </div>
-        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-jesus"></tbody></table>
-        <div class="prog-wrap">
-          <div class="prog-label"><span>Progreso semanal</span><span id="prog-jesus-txt">0h</span></div>
-          <div class="prog-bg"><div class="prog-fill" id="prog-jesus" style="width:0%"></div></div>
-        </div>
-        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-jesus">—</span></div>
-      </div>
-      <div class="r-card">
-        <div class="r-card-head">
-          <span class="r-card-title">Álvarez</span>
-          <span class="inicial-badge">Inicio: 7 sep 2026</span>
-        </div>
-        <table class="wtable"><thead><tr><th>Día</th><th>Horas</th><th>Estado</th></tr></thead><tbody id="tabla-alvarez"></tbody></table>
-        <div class="prog-wrap">
-          <div class="prog-label"><span>Progreso semanal</span><span id="prog-alvarez-txt">0h</span></div>
-          <div class="prog-bg"><div class="prog-fill" id="prog-alvarez" style="width:0%"></div></div>
-        </div>
-        <div class="total-row"><span class="total-label">A compensar</span><span class="total-val" id="total-alvarez">—</span></div>
-      </div>
-    </div>
-
-    <!-- RESUMEN GLOBAL -->
-    <div class="comp-sec">
-      <div class="comp-sec-head" style="display:flex;align-items:center;justify-content:space-between">
-        <span>Horas a compensar — resumen global</span>
-        <button onclick="abrirAjusteManual()" style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">✎ Ajuste manual</button>
-      </div>
-      <div class="comp-emp-row">
-        <span class="comp-emp-name">Diego</span>
-        <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales: 3h · ajuste: <span id="ajuste-diego">0h</span></div>
-          <div class="comp-valor" id="comp-total-diego">—</div>
-        </div>
-      </div>
-      <div class="comp-emp-row">
-        <span class="comp-emp-name">Jesús</span>
-        <div class="comp-emp-detail">
-          <div class="comp-inicial">Horas iniciales: 7h · ajuste: <span id="ajuste-jesus">0h</span></div>
-          <div class="comp-valor" id="comp-total-jesus">—</div>
-        </div>
-      </div>
-      <div class="comp-emp-row">
-        <span class="comp-emp-name">Álvarez</span>
-        <div class="comp-emp-detail">
-          <div class="comp-inicial">Inicio: 7 sep 2026 · ajuste: <span id="ajuste-alvarez">0h</span></div>
-          <div class="comp-valor" id="comp-total-alvarez">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL AJUSTE MANUAL -->
-    <div id="modal-ajuste" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:none;align-items:center;justify-content:center">
-      <div style="background:var(--gris-medio);border:1px solid var(--gris-borde);border-radius:6px;padding:28px;min-width:320px">
-        <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--granate);margin-bottom:20px">Ajuste manual de horas</div>
-        <div id="modal-pin-wrap">
-          <div style="font-size:12px;color:var(--gris-texto);margin-bottom:10px">Introduce el PIN de administrador:</div>
-          <input id="modal-pin" type="password" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:8px 12px;width:100%;margin-bottom:12px">
-          <div id="modal-pin-error" style="color:var(--granate);font-size:11px;margin-bottom:8px;display:none">PIN incorrecto</div>
-          <div style="display:flex;gap:10px;justify-content:flex-end">
-            <button onclick="cerrarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">Cancelar</button>
-            <button onclick="verificarPin()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:none;background:var(--granate);color:#fff;cursor:pointer">Entrar</button>
-          </div>
-        </div>
-        <div id="modal-form-wrap" style="display:none">
-          <div style="font-size:12px;color:var(--gris-texto);margin-bottom:16px">Ajuste sobre el saldo calculado (negativo = reduce, positivo = añade):</div>
-          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px">
-            <span style="font-size:13px;color:var(--blanco)">Diego</span>
-            <input id="adj-diego" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px">
-            <span style="font-size:13px;color:var(--blanco)">Jesús</span>
-            <input id="adj-jesus" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:20px">
-            <span style="font-size:13px;color:var(--blanco)">Álvarez</span>
-            <input id="adj-alvarez" type="number" step="0.5" style="background:var(--gris-oscuro);border:1px solid var(--gris-borde);border-radius:3px;color:var(--blanco);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:80px;text-align:right">
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end">
-            <button onclick="cerrarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:1px solid var(--gris-borde);background:transparent;color:var(--gris-texto);cursor:pointer">Cancelar</button>
-            <button onclick="guardarAjuste()" style="font-family:'Space Mono',monospace;font-size:10px;padding:8px 16px;border-radius:3px;border:none;background:var(--granate);color:#fff;cursor:pointer">Guardar ajuste</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="saldo-tiles" id="saldo-tiles"></div>
+    <div class="res-nota" id="res-nota"></div>
+    <div id="res-tablas"></div>
   </div>
 
   <!-- TAB INFORME -->
@@ -465,6 +366,48 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 .vac-quitar { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 12px; border-radius: 3px; border: 1px solid rgba(249,168,37,0.4); background: transparent; color: #F9A825; cursor: pointer; }
 .vac-quitar:hover { background: rgba(249,168,37,0.15); }
 .grid.dia-vacaciones { opacity: 0.3; pointer-events: none; }
+
+/* ── RESUMEN DE SALDOS ── */
+.saldo-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.saldo-tile { text-align: left; background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 16px 20px; cursor: pointer; color: inherit; font: inherit; transition: border-color 0.15s; }
+.saldo-tile:hover { border-color: var(--granate); }
+.saldo-tile.active { border-color: var(--granate); background: rgba(151,39,46,0.08); }
+.saldo-tile-name { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gris-texto); margin-bottom: 8px; }
+.saldo-tile-val { font-family: "Space Mono", monospace; font-size: 26px; font-weight: 700; }
+.saldo-tile-txt { font-size: 12px; color: var(--blanco-dim); margin-top: 4px; }
+.ok { color: var(--verde); } .bad { color: var(--granate); } .warn { color: var(--amarillo); }
+.res-nota { font-size: 11px; color: var(--gris-texto); margin-bottom: 14px; line-height: 1.6; }
+.res-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; margin-bottom: 22px; }
+.res-card-head { background: var(--gris-oscuro); padding: 12px 18px; border-bottom: 1px solid var(--gris-borde); display: flex; align-items: center; gap: 10px; font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+.res-card-head .cal-emp-dot { width: 8px; height: 8px; }
+.res-card-head .res-saldo { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: 12px; }
+table.rtable { width: 100%; border-collapse: collapse; }
+table.rtable th { padding: 8px 14px; text-align: right; font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gris-texto); border-bottom: 1px solid var(--gris-borde); background: rgba(0,0,0,0.2); }
+table.rtable td { padding: 8px 14px; text-align: right; font-family: "Space Mono", monospace; font-size: 12px; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--blanco-dim); white-space: nowrap; }
+table.rtable th:first-child, table.rtable td:first-child { text-align: left; }
+table.rtable tr.mes td { background: rgba(0,0,0,0.25); color: var(--gris-texto); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding-top: 12px; }
+table.rtable tr.subtotal td { background: rgba(151,39,46,0.06); color: var(--blanco); border-bottom: 1px solid var(--gris-borde); }
+table.rtable tr.inicial td { color: var(--gris-texto); font-style: italic; }
+table.rtable tr.en-curso td { color: var(--gris-texto); }
+.tag { display: inline-block; font-size: 9px; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
+.tag-rev { border: 1px solid var(--amarillo); color: var(--amarillo); }
+.tag-vac { color: #F9A825; }
+.adm-in { background: #1a1a1a; border: 1px solid var(--granate); border-radius: 2px; color: #fff; font-family: "Space Mono", monospace; font-size: 11px; padding: 3px 6px; width: 56px; text-align: right; }
+.adm-btn { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--granate); background: transparent; color: var(--granate); cursor: pointer; margin-left: 4px; }
+.adm-btn:hover { background: rgba(151,39,46,0.15); }
+
+/* ── COLUMNA RESUMEN DEL CALENDARIO ── */
+.cs { margin-bottom: 6px; font-family: "Space Mono", monospace; font-size: 10px; line-height: 1.7; color: var(--gris-texto); }
+.cs-head { display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 700; }
+.cs-head .cal-emp-dot { width: 6px; height: 6px; }
+.cs-body { padding-left: 10px; }
+.cs-body .adm-in { width: 44px; font-size: 10px; padding: 1px 4px; }
+.cs-sep { border-top: 1px solid #222; margin: 3px 0; }
+
+@media (max-width: 800px) {
+  .saldo-tiles { grid-template-columns: 1fr; }
+  .res-card { overflow-x: auto; }
+}
 </style>
 
 
@@ -487,7 +430,7 @@ const LABOR_COLORS = {
   "Otros":                      "#546E7A"
 };
 
-const LABORES = ["", ...Object.keys(LABOR_COLORS), "Otros"];
+const LABORES = ["", ...Object.keys(LABOR_COLORS)];
 
 const FRANJAS = [];
 for (let h = 7; h < 21; h++) {
@@ -495,12 +438,19 @@ for (let h = 7; h < 21; h++) {
   FRANJAS.push(pad(h) + ":30");
 }
 
-const HORAS_INICIALES = { Diego: 3, Jesus: 7, Alvarez: 0 };
-const FECHA_INICIO = "2026-06-29";
-const FECHA_CAMBIO_OBJETIVO = "2026-09-07"; // A partir de aquí el objetivo baja a 20h
+const FECHA_CAMBIO_OBJETIVO = "2026-09-07"; // A partir de aquí el objetivo por defecto baja a 20h
 const OBJETIVO_DIA = 6;
 const OBJETIVO_SEMANA = 30;
 const OBJETIVO_SEMANA_NUEVO = 20;
+
+// ── SALDO DE HORAS ──
+// El saldo se lleva semana a semana desde FECHA_ARRANQUE (lunes). Lo anterior es histórico.
+// Convención interna: saldo > 0 = horas a favor del trabajador (se las debes tú);
+//                     saldo < 0 = horas que el trabajador debe.
+// Saldos de arranque = los validados al cierre de la semana del 31-ago-2026.
+const FECHA_ARRANQUE = "2026-09-07";
+const SALDO_ARRANQUE = { Diego: -9.5, Jesus: -3.5, Alvarez: 0 };
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 // Nombres de display
 const NOMBRES = { Diego: "Diego", Jesus: "Jesús", Alvarez: "Álvarez" };
@@ -518,11 +468,12 @@ let infPeriodo = "semana";
 let vacaciones = { Diego: {}, Jesus: {}, Alvarez: {} };
 const VAC_PREVIAS = { Diego: 1, Jesus: 8, Alvarez: 0 };
 
-// Ajustes manuales de saldo { emp: horas } — protegidos por PIN
-let ajustesManuales = { Diego: 0, Jesus: 0, Alvarez: 0 };
 const PIN_ADMIN = "mnk";
 let modoAdmin = false;
-// ajustesSemana: { "Diego": { "2026-07-06": 5.0 }, ... }  — lunes como clave
+// ajustesSemana (viene de Sheets), clave = lunes de la semana:
+//   "2026-09-07_obj" → horas que debía hacer esa semana (lo fija el admin; si falta, 20h)
+//   "2026-09-07_var" → liquidación: horas saldadas esa semana (pagadas/descontadas)
+//   "2026-09-07"     → saldo al cierre, solo informativo en Sheets (la app siempre lo recalcula)
 let ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
 
 // ── INIT ─────────────────────────────────────────────────────────
@@ -531,11 +482,11 @@ async function init() {
   renderLeyenda();
   // Cargar desde localStorage como fallback inmediato
   const vacGuardadas = localStorage.getItem("codek_vacaciones");
-  if (vacGuardadas) vacaciones = JSON.parse(vacGuardadas);
-  const adjGuardados = localStorage.getItem("codek_ajustes");
-  if (adjGuardados) ajustesManuales = JSON.parse(adjGuardados);
+  if (vacGuardadas) { try { vacaciones = JSON.parse(vacGuardadas); } catch(e) {} }
   const adjSemGuardados = localStorage.getItem("codek_ajustes_semana");
   if (adjSemGuardados) { try { ajustesSemana = JSON.parse(adjSemGuardados); } catch(e) {} }
+  let backup = {};
+  try { backup = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}"); } catch(e) {}
   try {
     const res = await fetch(SCRIPT_URL + "?accion=todos");
     const json = await res.json();
@@ -549,25 +500,61 @@ async function init() {
         });
         localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
       }
+      // Días editados en este dispositivo que aún no llegaron a Sheets: la copia local manda
+      Object.keys(pendientes).forEach(clave => {
+        const [emp, fecha] = clave.split("|");
+        if (!datos[emp]) datos[emp] = {};
+        if (backup[emp] && backup[emp][fecha]) datos[emp][fecha] = backup[emp][fecha];
+        else delete datos[emp][fecha];
+      });
+      localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
       setSyncStatus("ok", "Conectado · Sheets");
     } else throw new Error(json.error);
   } catch(err) {
     setSyncStatus("err", "Sin conexión");
-    datos = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}");
+    datos = backup;
   }
   document.getElementById("fecha-picker").value = fechaActual;
   document.getElementById("loader").style.display = "none";
   renderGrid();
   renderStats();
+  if (Object.keys(pendientes).length) enviarPendientes();
 }
-init();
 
 // ── HELPERS ──────────────────────────────────────────────────────
 function pad(n) { return String(n).padStart(2, "0"); }
-function hoy() {
-  const d = new Date();
-  return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+function fmtFecha(d) { return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+function hoy() { return fmtFecha(new Date()); }
+function sumarDias(fecha, n) {
+  const d = new Date(fecha + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return fmtFecha(d);
 }
+function lunesDe(fecha) {
+  const d = new Date(fecha + "T12:00:00");
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return fmtFecha(d);
+}
+// "7–13 sep"
+function rangoSemana(lunes) {
+  const dom = sumarDias(lunes, 6);
+  const mes = f => MESES[+f.slice(5,7) - 1].substring(0,3).toLowerCase();
+  const dia = f => +f.slice(8,10);
+  return mes(lunes) === mes(dom)
+    ? dia(lunes) + "–" + dia(dom) + " " + mes(dom)
+    : dia(lunes) + " " + mes(lunes) + " – " + dia(dom) + " " + mes(dom);
+}
+function r2(x) { return Math.round(x * 100) / 100; }
+// Acepta "8,5" y "8.5". Vacío → null; texto no numérico → NaN
+function parseHoras(txt) {
+  const s = String(txt == null ? "" : txt).trim().replace(",", ".");
+  if (s === "") return null;
+  const n = Number(s);
+  return isFinite(n) ? n : NaN;
+}
+function fmtNum(x) { return String(r2(x)).replace(".", ","); }
+function fmtH(x) { return fmtNum(x) + "h"; }
+function fmtVar(x) { x = r2(x); return (x > 0 ? "+" : x < 0 ? "−" : "") + fmtH(Math.abs(x)); }
 
 // ── VACACIONES ───────────────────────────────────────────────────
 function esDiaVacaciones(emp, fecha) {
@@ -612,23 +599,78 @@ function horasDelDia(emp, fecha) {
   return Object.values(d).filter(v => v.labor).length * 0.5;
 }
 function horasSemana(emp, fechaRef) {
-  const d = new Date(fechaRef + "T12:00:00");
-  const lunes = new Date(d);
-  lunes.setDate(d.getDate() - ((d.getDay()+6)%7));
+  const lunes = lunesDe(fechaRef);
   let total = 0;
-  for (let i = 0; i < 7; i++) {
-    const f = new Date(lunes); f.setDate(lunes.getDate()+i);
-    total += horasDelDia(emp, f.getFullYear()+"-"+pad(f.getMonth()+1)+"-"+pad(f.getDate()));
-  }
+  for (let i = 0; i < 7; i++) total += horasDelDia(emp, sumarDias(lunes, i));
   return total;
 }
 function horasTotal(emp) {
   if (!datos[emp]) return 0;
   return Object.keys(datos[emp]).reduce((t,f) => t + horasDelDia(emp,f), 0);
 }
-function horasACompensar(emp) {
-  return calcSaldoConAjustes(emp, hoy(), hoy());
+
+// ── SALDO DE HORAS ───────────────────────────────────────────────
+// Una sola regla, sin excepciones:
+//   variación = horas hechas − horas que debía hacer
+//   saldo     = saldo semana anterior + variación + liquidación
+// Solo cuentan las semanas cerradas (domingo ya llegado). El objetivo lo fija el admin;
+// si no lo ha fijado se usan 20h y la semana sale como "sin revisar".
+// El Apps Script guarda los ajustes como enteros (8,5 → 8). Para no perder las medias horas,
+// los valores con decimales se envían como ±(10000 + minutos): 8,5h → 10510. Los enteros van tal cual.
+function codificarHoras(h) {
+  h = r2(h);
+  if (Number.isInteger(h)) return h;
+  return Math.sign(h) * (10000 + Math.round(Math.abs(h) * 60));
 }
+function decodificarHoras(v) {
+  v = Number(v);
+  return Math.abs(v) >= 10000 ? r2(Math.sign(v) * (Math.abs(v) - 10000) / 60) : v;
+}
+function ajusteSemana(emp, lunes) {
+  const aj = ajustesSemana[emp] || {};
+  const vacio = v => v === undefined || v === null || v === "";
+  const obj = aj[lunes + "_obj"], liq = aj[lunes + "_var"];
+  return {
+    obj: vacio(obj) ? null : decodificarHoras(obj),
+    liq: vacio(liq) ? 0 : decodificarHoras(liq)
+  };
+}
+function diasVacSemana(emp, lunes) {
+  let n = 0;
+  for (let i = 0; i < 5; i++) if (esDiaVacaciones(emp, sumarDias(lunes, i))) n++;
+  return n;
+}
+function semanasSaldo(emp) {
+  const hoyStr = hoy(), lunesHoy = lunesDe(hoyStr);
+  const filas = [];
+  let saldo = SALDO_ARRANQUE[emp] || 0;
+  for (let l = FECHA_ARRANQUE; l <= lunesHoy; l = sumarDias(l, 7)) {
+    const cerrada = sumarDias(l, 6) <= hoyStr;
+    const hechas = horasSemana(emp, l);
+    const aj = ajusteSemana(emp, l);
+    const obj = aj.obj !== null ? aj.obj : OBJETIVO_SEMANA_NUEVO;
+    const variacion = r2(hechas - obj);
+    const saldoPrev = saldo;
+    if (cerrada) saldo = r2(saldo + variacion + aj.liq);
+    filas.push({ lunes: l, cerrada, hechas, obj, revisada: aj.obj !== null, variacion,
+                 liq: aj.liq, saldoPrev, saldo: cerrada ? saldo : null, vac: diasVacSemana(emp, l) });
+  }
+  return filas;
+}
+function saldoActual(emp) {
+  const cerradas = semanasSaldo(emp).filter(f => f.cerrada);
+  return cerradas.length ? cerradas[cerradas.length - 1].saldo : (SALDO_ARRANQUE[emp] || 0);
+}
+function filaSemana(emp, lunes) {
+  return semanasSaldo(emp).find(f => f.lunes === lunes) || null;
+}
+function textoSaldo(emp, s) {
+  s = r2(s);
+  if (s === 0) return "Al día";
+  return s < 0 ? NOMBRES[emp] + " te debe " + fmtH(-s) : "Le debes " + fmtH(s) + " a " + NOMBRES[emp];
+}
+function saldoCorto(s) { s = r2(s); return s === 0 ? "al día" : s < 0 ? "debe " + fmtH(-s) : "a favor " + fmtH(s); }
+function claseSaldo(s) { s = r2(s); return s === 0 ? "ok" : s < 0 ? "bad" : "warn"; }
 
 // ── LEYENDA ──────────────────────────────────────────────────────
 function renderLeyenda() {
@@ -643,7 +685,7 @@ function renderGrid() {
   const emp = empleadoActual;
   const fecha = fechaActual;
   const diaData = (datos[emp]&&datos[emp][fecha]) ? datos[emp][fecha] : {};
-  document.getElementById("sched-titulo").textContent = "Franjas horarias — " + emp;
+  document.getElementById("sched-titulo").textContent = "Franjas horarias — " + NOMBRES[emp];
   actualizarBannerVacaciones();
 
   let html = "";
@@ -681,45 +723,78 @@ function toggleClase(franja) {
 }
 
 // ── AUTOGUARDADO ─────────────────────────────────────────────────
-let autoguardTimer = null;
+// Cada día editado entra en una cola { "emp|fecha": versión } guardada en localStorage.
+// Solo sale de la cola cuando Sheets confirma, así no se pierde nada aunque se cambie
+// de día/trabajador o se cierre la página antes de que termine el envío.
+let autoguardTimer = null, reintentoTimer = null, msgTimer = null;
+let pendientes = cargarPendientes();
+let enviando = false;
 
-function dispararAutoguardado() {
-  // Guarda localmente de inmediato (nunca se pierde nada)
-  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
-
-  // Muestra indicador "guardando..."
+function cargarPendientes() {
+  try { return JSON.parse(localStorage.getItem("codek_pendientes") || "{}") || {}; } catch(e) { return {}; }
+}
+function persistirPendientes() {
+  localStorage.setItem("codek_pendientes", JSON.stringify(pendientes));
+}
+function mostrarMsg(txt, color, fijo) {
   const msg = document.getElementById("save-msg");
-  msg.textContent = "Guardando...";
-  msg.style.color = "var(--amarillo)";
+  msg.textContent = txt;
+  msg.style.color = color;
   msg.classList.add("show");
-
-  // Cancela el timer anterior y arranca uno nuevo de 2 segundos
-  clearTimeout(autoguardTimer);
-  autoguardTimer = setTimeout(() => guardarSilencioso(), 2000);
+  clearTimeout(msgTimer);
+  if (!fijo) msgTimer = setTimeout(() => msg.classList.remove("show"), 2500);
 }
 
-async function guardarSilencioso() {
-  const msg = document.getElementById("save-msg");
-  const franjas = (datos[empleadoActual] && datos[empleadoActual][fechaActual])
-    ? datos[empleadoActual][fechaActual] : {};
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ empleado: empleadoActual, fecha: fechaActual, franjas })
-    });
-    const json = await res.json();
-    if (json.ok) {
-      setSyncStatus("ok", "Guardado · Sheets");
-      msg.textContent = "Autoguardado ✓";
-      msg.style.color = "var(--verde)";
-    } else throw new Error(json.error);
-  } catch(err) {
-    setSyncStatus("err", "Error al guardar");
-    msg.textContent = "Solo guardado local";
-    msg.style.color = "var(--granate)";
-  }
+function dispararAutoguardado() {
+  const clave = empleadoActual + "|" + fechaActual;
+  pendientes[clave] = (pendientes[clave] || 0) + 1;
+  persistirPendientes();
   localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
-  setTimeout(() => msg.classList.remove("show"), 2500);
+  mostrarMsg("Guardando...", "var(--amarillo)", true);
+  clearTimeout(autoguardTimer);
+  autoguardTimer = setTimeout(enviarPendientes, 1500);
+}
+
+async function enviarPendientes() {
+  clearTimeout(autoguardTimer);
+  clearTimeout(reintentoTimer);
+  if (enviando) { autoguardTimer = setTimeout(enviarPendientes, 1000); return null; }
+  enviando = true;
+  let ok = true;
+  try {
+    for (let vuelta = 0; vuelta < 3 && ok && Object.keys(pendientes).length; vuelta++) {
+      for (const clave of Object.keys(pendientes)) {
+        const version = pendientes[clave];
+        const [emp, fecha] = clave.split("|");
+        const franjas = (datos[emp] && datos[emp][fecha]) ? datos[emp][fecha] : {};
+        try {
+          const res = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ empleado: emp, fecha, franjas })
+          });
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error);
+          // Si se volvió a editar mientras se enviaba, se queda en cola para la siguiente vuelta
+          if (pendientes[clave] === version) delete pendientes[clave];
+          persistirPendientes();
+        } catch(err) {
+          ok = false;
+          break;
+        }
+      }
+    }
+  } finally {
+    enviando = false;
+  }
+  if (ok) {
+    setSyncStatus("ok", "Guardado · Sheets");
+    mostrarMsg("Guardado ✓", "var(--verde)");
+  } else {
+    setSyncStatus("err", "Error al guardar");
+    mostrarMsg("Sin conexión — guardado en este dispositivo, se reintentará", "var(--granate)", true);
+    reintentoTimer = setTimeout(enviarPendientes, 30000);
+  }
+  return ok;
 }
 
 function onLaborChange(sel, franja) {
@@ -763,8 +838,7 @@ function renderStats() {
   const esVac = esDiaVacaciones(emp, fechaActual);
   const hd = esVac ? 0 : horasDelDia(emp, fechaActual);
   const hs = horasSemana(emp, fechaActual);
-  const comp = horasACompensar(emp);
-  const vac = diasVacaciones(emp);
+  const comp = saldoActual(emp);
 
   const sh = document.getElementById("stat-hoy");
   if (esVac) {
@@ -777,17 +851,25 @@ function renderStats() {
     document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "de 6h objetivo";
   }
 
-  const objHoy = objetivoSemana(hoy());
+  const lunesSel = lunesDe(fechaActual);
+  let objSem;
+  if (lunesSel >= FECHA_ARRANQUE) {
+    const aj = ajusteSemana(emp, lunesSel);
+    objSem = aj.obj !== null ? aj.obj : OBJETIVO_SEMANA_NUEVO;
+  } else {
+    objSem = objetivoSemana(lunesSel);
+  }
   const ss = document.getElementById("stat-semana");
-  ss.textContent = hs+"h";
-  ss.className = "stat-value "+(hs>=objHoy?"ok":hs>=objHoy*.7?"warn":"bad");
+  ss.textContent = fmtH(hs);
+  ss.className = "stat-value "+(hs>=objSem?"ok":hs>=objSem*.7?"warn":"bad");
+  document.getElementById("stat-semana-sub").textContent = "de " + fmtH(objSem) + " esa semana";
 
-  document.getElementById("stat-total").textContent = horasTotal(emp)+"h";
+  document.getElementById("stat-total").textContent = fmtH(horasTotal(emp));
 
   const sc = document.getElementById("stat-comp");
-  sc.textContent = comp+"h";
-  sc.className = "stat-value "+(comp===0?"ok":"bad");
-  document.getElementById("stat-comp-sub").textContent = comp===0?"Al día ✓":"pendiente de compensar";
+  sc.textContent = fmtH(Math.abs(comp));
+  sc.className = "stat-value " + claseSaldo(comp);
+  document.getElementById("stat-comp-sub").textContent = textoSaldo(emp, comp);
 
   document.getElementById("stat-vac").textContent = diasVacaciones(empleadoActual);
   document.getElementById("stat-vac-sub").textContent = "días disfrutados";
@@ -795,35 +877,11 @@ function renderStats() {
 
 // ── GUARDAR (botón manual) ────────────────────────────────────────
 async function guardar() {
-  // Cancela cualquier autoguardado pendiente (el manual tiene prioridad)
-  clearTimeout(autoguardTimer);
-
   const btn = document.getElementById("btn-guardar");
-  const msg = document.getElementById("save-msg");
   btn.disabled = true; btn.textContent = "Guardando...";
   setSyncStatus("loading", "Guardando...");
-
-  const franjas = (datos[empleadoActual] && datos[empleadoActual][fechaActual])
-    ? datos[empleadoActual][fechaActual] : {};
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ empleado: empleadoActual, fecha: fechaActual, franjas })
-    });
-    const json = await res.json();
-    if (json.ok) {
-      setSyncStatus("ok", "Guardado · Sheets");
-      msg.textContent = "Guardado en Sheets ✓";
-      msg.style.color = "var(--verde)";
-    } else throw new Error(json.error);
-  } catch(err) {
-    setSyncStatus("err", "Error al guardar");
-    msg.textContent = "Error — guardado solo local";
-    msg.style.color = "var(--granate)";
-  }
-  localStorage.setItem("codek_tareas_backup", JSON.stringify(datos));
-  msg.classList.add("show");
-  setTimeout(() => msg.classList.remove("show"), 3000);
+  dispararAutoguardado();
+  await enviarPendientes();
   btn.disabled = false; btn.textContent = "Guardar día";
 }
 
@@ -855,65 +913,101 @@ function cambiarDia(delta) {
 }
 
 // ── RESUMEN ──────────────────────────────────────────────────────
-function renderResumen() {
-  const objSem = objetivoSemana(hoy());
-  ["Diego","Jesus","Alvarez"].forEach(emp => {
-    const id = emp.toLowerCase();
-    const dias = datos[emp] ? Object.keys(datos[emp]).sort().reverse().slice(0,7) : [];
-    let filas = "";
-    dias.forEach(f => {
-      const h = horasDelDia(emp,f);
-      if (!h) return;
-      const cls = h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.7?"warn":"bad";
-      filas += `<tr><td>${f.split("-").reverse().join("/")}</td><td class="${cls}">${h}h</td><td class="${cls}">${h>=OBJETIVO_DIA?"Completo":"Parcial"}</td></tr>`;
-    });
-    if (!filas) filas = `<tr><td colspan="3" style="color:var(--gris-texto);font-size:11px;padding:14px 16px">Sin registros aún</td></tr>`;
-    document.getElementById("tabla-"+id).innerHTML = filas;
-    const hs = horasSemana(emp, hoy());
-    const pct = Math.min(100,(hs/objSem)*100);
-    document.getElementById("prog-"+id+"-txt").textContent = hs+" / "+objSem+"h";
-    const fill = document.getElementById("prog-"+id);
-    fill.style.width = pct+"%"; fill.className = "prog-fill"+(pct>=100?" ok":"");
-    const comp = horasACompensar(emp);
-    document.getElementById("total-"+id).textContent = comp+"h";
-    document.getElementById("total-"+id).className = "total-val "+(comp===0?"ok":"bad");
-    document.getElementById("comp-total-"+id).textContent = comp+"h";
-    document.getElementById("comp-total-"+id).className = "comp-valor"+(comp===0?" ok":"");
-    const aj = ajustesManuales[emp] || 0;
-    document.getElementById("ajuste-"+id).textContent = (aj>=0?"+":"")+aj+"h";
-  });
+let resEmp = "todos";
+
+function setResEmp(emp) {
+  resEmp = (resEmp === emp) ? "todos" : emp;
+  renderResumen();
 }
 
-// ── AJUSTE MANUAL ────────────────────────────────────────────────
-function abrirAjusteManual() {
-  document.getElementById("modal-ajuste").style.display = "flex";
-  document.getElementById("modal-pin-wrap").style.display = "block";
-  document.getElementById("modal-form-wrap").style.display = "none";
-  document.getElementById("modal-pin").value = "";
-  document.getElementById("modal-pin-error").style.display = "none";
+function renderResumen() {
+  document.getElementById("saldo-tiles").innerHTML = EMPLEADOS.map(emp => {
+    const s = saldoActual(emp);
+    return `<button class="saldo-tile${resEmp===emp?" active":""}" onclick="setResEmp('${emp}')">
+      <div class="saldo-tile-name"><span class="cal-emp-dot" style="display:inline-block;background:${EMP_COLORES[emp]};margin-right:6px"></span>${NOMBRES[emp]}</div>
+      <div class="saldo-tile-val ${claseSaldo(s)}">${fmtH(Math.abs(s))}</div>
+      <div class="saldo-tile-txt">${textoSaldo(emp, s)}</div>
+    </button>`;
+  }).join("");
+
+  const sinRevisar = EMPLEADOS.reduce((n, emp) =>
+    n + semanasSaldo(emp).filter(f => f.cerrada && !f.revisada).length, 0);
+  let nota = "Variación = horas hechas − horas que debía hacer. El saldo va sumando semana a semana desde el 7 sep (los saldos de agosto quedan como saldo inicial).";
+  if (sinRevisar) nota += ` <span class="warn">Hay ${sinRevisar} semana(s) cerrada(s) sin revisar: cuentan con 20h hasta que pongas el objetivo.</span>`;
+  nota += modoAdmin
+    ? " <b class=\"bad\">Admin:</b> escribe en «Debía» las horas que tocaban (admite 8,5) y pulsa Enter. «Liquidar» salda las horas pagadas o descontadas."
+    : " Pulsa «⚙ Admin» para poner el objetivo de cada semana o liquidar horas.";
+  document.getElementById("res-nota").innerHTML = nota;
+
+  const emps = resEmp === "todos" ? EMPLEADOS : [resEmp];
+  document.getElementById("res-tablas").innerHTML = emps.map(tablaResumen).join("");
 }
-function cerrarAjuste() {
-  document.getElementById("modal-ajuste").style.display = "none";
-}
-function verificarPin() {
-  if (document.getElementById("modal-pin").value === PIN_ADMIN) {
-    document.getElementById("modal-pin-wrap").style.display = "none";
-    document.getElementById("modal-form-wrap").style.display = "block";
-    document.getElementById("adj-diego").value = ajustesManuales.Diego || 0;
-    document.getElementById("adj-jesus").value = ajustesManuales.Jesus || 0;
-    document.getElementById("adj-alvarez").value = ajustesManuales.Alvarez || 0;
-  } else {
-    document.getElementById("modal-pin-error").style.display = "block";
-  }
-}
-function guardarAjuste() {
-  ajustesManuales.Diego   = parseFloat(document.getElementById("adj-diego").value) || 0;
-  ajustesManuales.Jesus   = parseFloat(document.getElementById("adj-jesus").value) || 0;
-  ajustesManuales.Alvarez = parseFloat(document.getElementById("adj-alvarez").value) || 0;
-  localStorage.setItem("codek_ajustes", JSON.stringify(ajustesManuales));
-  cerrarAjuste();
-  renderResumen();
-  renderStats();
+
+function tablaResumen(emp) {
+  const filas = semanasSaldo(emp);
+  const s = saldoActual(emp);
+  // Mes de cada semana = el del jueves (el mes que tiene la mayoría de sus días)
+  const mesDe = lunes => sumarDias(lunes, 3).slice(0, 7);
+
+  let html = `<tr class="inicial"><td>Saldo inicial (hasta 6 sep)</td><td></td><td></td><td></td><td></td>
+    <td class="${claseSaldo(SALDO_ARRANQUE[emp]||0)}">${saldoCorto(SALDO_ARRANQUE[emp]||0)}</td></tr>`;
+
+  let mesActual = null, tot = null;
+  const cerrarMes = () => {
+    if (!tot || !tot.semanas) return "";
+    return `<tr class="subtotal"><td>Total ${MESES[+mesActual.slice(5,7)-1].toLowerCase()}</td>
+      <td>${fmtH(tot.hechas)}</td><td>${fmtH(tot.obj)}</td>
+      <td class="${tot.variacion>=0?"ok":"bad"}">${fmtVar(tot.variacion)}</td>
+      <td>${tot.liq ? fmtVar(tot.liq) : ""}</td>
+      <td class="${claseSaldo(tot.saldo)}">${saldoCorto(tot.saldo)}</td></tr>`;
+  };
+
+  filas.forEach(f => {
+    const mes = mesDe(f.lunes);
+    if (mes !== mesActual) {
+      html += cerrarMes();
+      mesActual = mes;
+      tot = { hechas: 0, obj: 0, variacion: 0, liq: 0, saldo: 0, semanas: 0 };
+      html += `<tr class="mes"><td colspan="6">${MESES[+mes.slice(5,7)-1]} ${mes.slice(0,4)}</td></tr>`;
+    }
+    if (f.cerrada) {
+      tot.hechas += f.hechas; tot.obj += f.obj; tot.variacion = r2(tot.variacion + f.variacion);
+      tot.liq = r2(tot.liq + f.liq); tot.saldo = f.saldo; tot.semanas++;
+    }
+
+    const vac = f.vac ? `<span class="tag tag-vac" title="Días de vacaciones marcados (L-V)">☀ ${f.vac}d vac</span>` : "";
+    const rev = (f.cerrada && !f.revisada) ? `<span class="tag tag-rev">sin revisar</span>` : "";
+    const objCell = modoAdmin
+      ? `<input class="adm-in" inputmode="decimal" value="${f.revisada ? fmtNum(f.obj) : ""}" placeholder="${fmtNum(f.obj)}"
+           onkeydown="if(event.key==='Enter')this.blur()" onchange="onObjChange('${emp}','${f.lunes}',this)">h${rev}`
+      : `${fmtH(f.obj)}${rev}`;
+
+    let liqCell = f.liq ? `<span title="Liquidación">${fmtVar(f.liq)}</span>` : "";
+    if (modoAdmin && f.cerrada) {
+      liqCell += f.liq
+        ? `<button class="adm-btn" onclick="quitarLiquidacion('${emp}','${f.lunes}')">deshacer</button>`
+        : `<button class="adm-btn" onclick="liquidar('${emp}','${f.lunes}')">Liquidar</button>`;
+    }
+
+    if (f.cerrada) {
+      html += `<tr><td>${rangoSemana(f.lunes)}${vac}</td>
+        <td>${fmtH(f.hechas)}</td><td>${objCell}</td>
+        <td class="${f.variacion>=0?"ok":"bad"}">${fmtVar(f.variacion)}</td>
+        <td>${liqCell}</td>
+        <td class="${claseSaldo(f.saldo)}">${saldoCorto(f.saldo)}</td></tr>`;
+    } else {
+      html += `<tr class="en-curso"><td>${rangoSemana(f.lunes)}${vac}</td>
+        <td>${fmtH(f.hechas)}</td><td>${objCell}</td>
+        <td colspan="2">en curso</td><td>—</td></tr>`;
+    }
+  });
+  html += cerrarMes();
+
+  return `<div class="res-card">
+    <div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}
+      <span class="res-saldo ${claseSaldo(s)}">${textoSaldo(emp, s)}</span></div>
+    <table class="rtable"><thead><tr><th>Semana</th><th>Hechas</th><th>Debía</th><th>Variación</th><th>Liquidado</th><th>Saldo</th></tr></thead>
+    <tbody>${html}</tbody></table></div>`;
 }
 
 // ── INFORME ──────────────────────────────────────────────────────
@@ -975,12 +1069,12 @@ function renderInforme() {
           const color = LABOR_COLORS[l]||"#666";
           return `<div class="inf-labor-row"><div class="inf-labor-dot" style="background:${color}"></div><span class="inf-labor-name">${l}</span><div class="inf-labor-bar-wrap"><div class="inf-labor-bar" style="width:${pct}%;background:${color}"></div></div><span class="inf-labor-hrs">${h}h</span></div>`;
         }).join("");
-    bodyHtml += `<div class="inf-card"><div class="inf-card-head"><span class="inf-card-title">${emp}</span><span class="inf-card-total">${total}h total</span></div>${rows}</div>`;
+    bodyHtml += `<div class="inf-card"><div class="inf-card-head"><span class="inf-card-title">${NOMBRES[emp]}</span><span class="inf-card-total">${fmtH(total)} total</span></div>${rows}</div>`;
   });
   document.getElementById("informe-body").innerHTML = bodyHtml;
 
   const combEl = document.getElementById("inf-combined");
-  if (infEmp==="ambos") {
+  if (infEmp==="todos") {
     const sorted = Object.entries(combinado).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
     const total = sorted.reduce((a,[,h])=>a+h,0);
     const maxH = sorted.length ? sorted[0][1] : 1;
@@ -1002,80 +1096,9 @@ function renderInforme() {
 let calAnio = new Date().getFullYear();
 let calMes  = new Date().getMonth();
 
+// Objetivo histórico (antes de FECHA_ARRANQUE): solo para mostrar, no entra en el saldo
 function objetivoSemana(lunesKey) {
   return lunesKey >= FECHA_CAMBIO_OBJETIVO ? OBJETIVO_SEMANA_NUEVO : OBJETIVO_SEMANA;
-}
-
-function calcSaldo(emp, domingoKey, hoyStr) {
-  var saldo = HORAS_INICIALES[emp];
-  var fechaInicioEmp = (emp === "Alvarez") ? FECHA_CAMBIO_OBJETIVO : FECHA_INICIO;
-  var d = new Date(fechaInicioEmp + "T12:00:00");
-  var lunesInicio = new Date(d.getTime());
-  lunesInicio.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  var cur = new Date(lunesInicio.getTime());
-  for (var iter = 0; iter < 100; iter++) {
-    var lKey = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
-    var domingo = new Date(cur.getTime());
-    domingo.setDate(cur.getDate() + 6);
-    var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
-    if (dKey > hoyStr) break;  // procesar hasta hoy inclusive (si hoy es domingo, incluye esta semana)
-    if (dKey > domingoKey) break;
-    var hrs = 0, vac = 0;
-    for (var i = 0; i < 7; i++) {
-      var dia = new Date(cur.getTime());
-      dia.setDate(cur.getDate() + i);
-      var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
-      if (fk < fechaInicioEmp) continue;
-      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; }
-      else { hrs += horasDelDia(emp, fk); }
-    }
-    var objSem = Math.max(0, objetivoSemana(lKey) - vac * OBJETIVO_DIA);
-    saldo = saldo - (hrs - objSem);
-    if (saldo < 0) saldo = 0;
-    cur.setDate(cur.getDate() + 7);
-  }
-  // No usar ajustesManuales legacy — ahora se usa ajustesSemana
-  return saldo;
-}
-
-// Calcula saldo acumulado hasta el DOMINGO de la semana indicada,
-// respetando overrides manuales por semana
-function calcSaldoConAjustes(emp, domingoKey, hoyStr) {
-  var fechaInicioEmp = (emp === "Alvarez") ? FECHA_CAMBIO_OBJETIVO : FECHA_INICIO;
-  var d = new Date(fechaInicioEmp + "T12:00:00");
-  var lunesInicio = new Date(d.getTime());
-  lunesInicio.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  var cur = new Date(lunesInicio.getTime());
-  var saldo = HORAS_INICIALES[emp];
-
-  for (var iter = 0; iter < 100; iter++) {
-    var lKey = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
-    var domingo = new Date(cur.getTime()); domingo.setDate(cur.getDate() + 6);
-    var dKey = domingo.getFullYear() + "-" + pad(domingo.getMonth()+1) + "-" + pad(domingo.getDate());
-    if (dKey > hoyStr) break;  // incluye domingo de hoy si hoy es domingo
-    if (dKey > domingoKey) break;
-
-    // Si hay ajuste manual para este lunes, usarlo directamente como saldo al cierre
-    if (ajustesSemana[emp] && ajustesSemana[emp][lKey] !== undefined) {
-      saldo = ajustesSemana[emp][lKey];
-      cur.setDate(cur.getDate() + 7);
-      continue;
-    }
-
-    var hrs = 0, vac = 0;
-    for (var i = 0; i < 7; i++) {
-      var dia = new Date(cur.getTime()); dia.setDate(cur.getDate() + i);
-      var fk = dia.getFullYear() + "-" + pad(dia.getMonth()+1) + "-" + pad(dia.getDate());
-      if (fk < fechaInicioEmp) continue;
-      if (esDiaVacaciones(emp, fk)) { if (i < 5) vac++; }
-      else { hrs += horasDelDia(emp, fk); }
-    }
-    var objSem = Math.max(0, objetivoSemana(lKey) - vac * OBJETIVO_DIA);
-    saldo = saldo - (hrs - objSem);
-    if (saldo < 0) saldo = 0;
-    cur.setDate(cur.getDate() + 7);
-  }
-  return saldo;
 }
 
 function cambiarMes(delta) {
@@ -1087,21 +1110,19 @@ function cambiarMes(delta) {
 
 function renderCalendario() {
   const hoyStr = hoy();
-  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   document.getElementById("cal-mes-label").textContent = MESES[calMes] + " " + calAnio;
 
   const primerDia    = new Date(calAnio, calMes, 1);
   const ultimoDia    = new Date(calAnio, calMes + 1, 0);
   const offsetInicio = (primerDia.getDay() + 6) % 7;
-  const totalCeldas  = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
-  const numSemanas   = totalCeldas / 7;
+  const numSemanas   = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7);
 
-  // Calcular saldo acumulado: recorre semanas desde FECHA_INICIO hasta domingoKey
-  // Semana a semana: saldo = saldo - (horas_hechas - objetivo)
-  // Si hicieron más → saldo baja. Si hicieron menos → saldo sube. Mínimo 0.
-  const fmtSem = (bal) => bal >= 0
-    ? `<span style="color:var(--granate)">+${bal}h</span>`   // déficit → deben más
-    : `<span style="color:var(--verde)">−${Math.abs(bal)}h</span>`; // superávit → compensan
+  // Semanas con saldo, indexadas por lunes
+  const semanas = {};
+  EMPLEADOS.forEach(emp => {
+    semanas[emp] = {};
+    semanasSaldo(emp).forEach(f => { semanas[emp][f.lunes] = f; });
+  });
 
   let html = ["L","M","X","J","V","S","D"].map(d =>
     `<div class="cal-dow">${d}</div>`
@@ -1110,145 +1131,71 @@ function renderCalendario() {
   for (let sem = 0; sem < numSemanas; sem++) {
     const diasSemana = [];
     for (let dow = 0; dow < 7; dow++) {
-      const offset = (sem * 7 + dow) - offsetInicio;
-      const fecha = new Date(calAnio, calMes, 1 + offset);
-      const fechaStr = fecha.getFullYear()+"-"+pad(fecha.getMonth()+1)+"-"+pad(fecha.getDate());
-      diasSemana.push({ fecha, fechaStr, dow });
+      const fecha = new Date(calAnio, calMes, 1 + sem * 7 + dow - offsetInicio);
+      diasSemana.push({ fecha, fechaStr: fmtFecha(fecha), dow });
     }
+    const lunesKey = diasSemana[0].fechaStr;
 
-    const domingoKey = diasSemana[6].fechaStr;
-    const lunesKey   = diasSemana[0].fechaStr;
-    const semCerrada = domingoKey <= hoyStr;
-
-    // Horas totales de la semana (todos los días) y vacaciones laborables L-V
-    let totD = 0, totJ = 0, totA = 0, vacD = 0, vacJ = 0, vacA = 0;
-    diasSemana.forEach(({fechaStr, dow}) => {
-      if (esDiaVacaciones("Diego", fechaStr)) { if (dow < 5) vacD++; }
-      else totD += horasDelDia("Diego", fechaStr);
-      if (esDiaVacaciones("Jesus", fechaStr)) { if (dow < 5) vacJ++; }
-      else totJ += horasDelDia("Jesus", fechaStr);
-      if (esDiaVacaciones("Alvarez", fechaStr)) { if (dow < 5) vacA++; }
-      else totA += horasDelDia("Alvarez", fechaStr);
-    });
-
-    // Objetivo de esta semana para mostrar en pantalla
-    const objD = Math.max(0, objetivoSemana(lunesKey) - vacD*OBJETIVO_DIA);
-    const objJ = Math.max(0, objetivoSemana(lunesKey) - vacJ*OBJETIVO_DIA);
-    const objA = Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA);
-    const balD = totD - objD;
-    const balJ = totJ - objJ;
-
-    // Saldo acumulado al cierre de esta semana
-    const saldoD = semCerrada ? calcSaldoConAjustes("Diego", domingoKey, hoyStr) : null;
-    const saldoJ = semCerrada ? calcSaldoConAjustes("Jesus", domingoKey, hoyStr) : null;
-    const saldoA = semCerrada ? calcSaldoConAjustes("Alvarez", domingoKey, hoyStr) : null;
-
-    // Renderizar días
+    // Días
     let semHtml = "";
-    diasSemana.forEach(({fecha, fechaStr, dow}) => {
+    diasSemana.forEach(({fecha, fechaStr}) => {
       const esMes = fecha.getMonth() === calMes;
-      const esHoy = fechaStr === hoyStr;
       const esFS  = fecha.getDay() === 0 || fecha.getDay() === 6;
-      const hD = horasDelDia("Diego", fechaStr);
-      const hJ = horasDelDia("Jesus", fechaStr);
-
       let cls = "cal-day";
       if (!esMes) cls += " otro-mes";
-      if (esHoy)  cls += " hoy";
-      if (esFS)   cls += " fin-semana";
-      if (esDiaVacaciones("Diego",fechaStr)||esDiaVacaciones("Jesus",fechaStr)||esDiaVacaciones("Alvarez",fechaStr)) cls += " vacaciones";
+      if (fechaStr === hoyStr) cls += " hoy";
+      if (esFS) cls += " fin-semana";
+      if (EMPLEADOS.some(e => esDiaVacaciones(e, fechaStr))) cls += " vacaciones";
 
       const mesLbl = !esMes ? `<span style="font-size:8px;color:#555;margin-left:2px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
 
-      const rows = [
-        {empKey:"Diego",   label:"Diego",   h:hD, color:"#97272E"},
-        {empKey:"Jesus",   label:"Jesús",   h:hJ, color:"#1565C0"},
-        {empKey:"Alvarez", label:"Álvarez", h:horasDelDia("Alvarez",fechaStr), color:"#2E7D32"}
-      ].map(({empKey, label, h, color}) => {
-        if (esDiaVacaciones(empKey, fechaStr))
-          return `<div class="cal-emp-row"><span style="background:${color}" class="cal-emp-dot"></span><span class="cal-vac-label">☀ vac</span></div>`;
+      const rows = EMPLEADOS.map(emp => {
+        const dot = `<span style="background:${EMP_COLORES[emp]}" class="cal-emp-dot"></span>`;
+        if (esDiaVacaciones(emp, fechaStr))
+          return `<div class="cal-emp-row">${dot}<span class="cal-vac-label">☀ vac</span></div>`;
+        const h = horasDelDia(emp, fechaStr);
         const c = "cal-emp-hrs "+(h===0?"vacio":h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.5?"warn":"bad");
-        return `<div class="cal-emp-row"><span style="background:${color}" class="cal-emp-dot"></span><span class="${c}">${h>0?h+"h":"—"}</span><span class="cal-emp-name">${label}</span></div>`;
+        return `<div class="cal-emp-row">${dot}<span class="${c}">${h>0?fmtH(h):"—"}</span><span class="cal-emp-name">${NOMBRES[emp]}</span></div>`;
       }).join("");
 
       semHtml += `<div class="${cls}" onclick="abrirDia('${fechaStr}')" style="cursor:pointer"><div class="cal-num">${fecha.getDate()}${mesLbl}</div>${rows}</div>`;
     });
 
-    // Columna resumen — compacta, una tabla por persona
-    const bloque = (nombre, color, tot, obj, bal, saldo, empKey, lunesKey) => {
-      const aj = ajustesSemana[empKey] || {};
-      const objEfectivo   = (aj[lunesKey+"_obj"] !== undefined) ? aj[lunesKey+"_obj"] : obj;
-      const varEfectiva   = (aj[lunesKey+"_var"] !== undefined) ? aj[lunesKey+"_var"] : bal;
-      const saldoEfectivo = (aj[lunesKey]        !== undefined) ? aj[lunesKey]        : saldo;
-      const cH = tot>=objEfectivo?"ok":tot>=objEfectivo*.7?"warn":tot>0?"bad":"vacio";
-      const sc = saldoEfectivo===0?"var(--verde)":"var(--granate)";
-      const vc = varEfectiva>=0?"var(--granate)":"var(--verde)";
+    // Columna resumen
+    const bloque = emp => {
+      const head = `<div class="cs-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}</div>`;
+      const tot = horasSemana(emp, lunesKey);
 
-      if (modoAdmin && semCerrada) {
-        const uid = empKey+"__"+lunesKey.replace(/-/g,"");
-        return `<div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
-            <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
-            <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
-          </div>
-          <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--gris-texto);line-height:2">
-            <div style="display:flex;align-items:center;gap:5px">
-              <span>obj</span>
-              <input id="obj_${uid}" type="number" step="0.5" value="${objEfectivo}"
-                oninput="markDirty('${uid}')"
-                style="background:#1a1a1a;border:1px solid #444;border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
-              <span>h</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px">
-              <span>var</span>
-              <input id="var_${uid}" type="number" step="0.5" value="${varEfectiva}"
-                oninput="markDirty('${uid}')"
-                style="background:#1a1a1a;border:1px solid #444;border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
-              <span>h</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px">
-              <span>⬤</span>
-              <input id="saldo_${uid}" type="number" step="0.5" value="${saldoEfectivo}"
-                oninput="markDirty('${uid}')"
-                style="background:#1a1a1a;border:1px solid var(--granate);border-radius:2px;color:#fff;font-family:'Space Mono',monospace;font-size:10px;padding:2px 5px;width:52px;text-align:right">
-              <span>h</span>
-            </div>
-            <div id="guardar_${uid}" style="display:none;margin-top:4px;display:flex;gap:5px;align-items:center">
-              <button onclick="commitAjuste('${empKey}','${lunesKey}','${uid}')"
-                style="font-family:'Space Mono',monospace;font-size:9px;padding:3px 10px;border-radius:2px;border:none;background:var(--granate);color:#fff;cursor:pointer;letter-spacing:0.08em">
-                GUARDAR
-              </button>
-              ${aj[lunesKey] !== undefined ? `<button onclick="borrarAjusteInline('${empKey}','${lunesKey}','${uid}')"
-                style="font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:2px;border:1px solid #555;background:transparent;color:#999;cursor:pointer">
-                reset
-              </button>` : ""}
-            </div>
-          </div>
-        </div>`;
+      if (lunesKey < FECHA_ARRANQUE) {
+        if (emp === "Alvarez") return `<div class="cs">${head}<div class="cs-body">—</div></div>`;
+        const vac = diasVacSemana(emp, lunesKey);
+        const objHist = Math.max(0, objetivoSemana(lunesKey) - vac * OBJETIVO_DIA);
+        return `<div class="cs">${head}<div class="cs-body">${fmtH(tot)} / ${fmtH(objHist)}<br><span style="font-size:9px">histórico</span></div></div>`;
       }
 
-      return `<div style="margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:4px">
-          <div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>
-          <b style="font-size:10px;font-family:'Space Mono',monospace;color:#fff">${nombre}</b>
-        </div>
-        <div style="padding-left:10px;font-family:'Space Mono',monospace;font-size:10px;line-height:1.7;color:var(--gris-texto)">
-          <span class="cal-emp-hrs ${cH}">${tot}h</span><span> / ${objEfectivo}h</span><br>
-          ${semCerrada
-            ? `<span style="color:${vc}">${varEfectiva>=0?"+":""}${varEfectiva}h</span><br><span style="color:${sc};font-weight:700">⬤ ${saldoEfectivo}h</span>`
-            : "<span style='font-size:9px'>en curso</span>"}
-        </div>
-      </div>`;
+      const f = semanas[emp][lunesKey];
+      if (!f) return `<div class="cs">${head}<div class="cs-body">—</div></div>`;  // semana futura
+
+      const cH = f.hechas>=f.obj?"ok":f.hechas>=f.obj*.7?"warn":f.hechas>0?"bad":"vacio";
+      const objHtml = modoAdmin
+        ? `<input class="adm-in" inputmode="decimal" value="${f.revisada ? fmtNum(f.obj) : ""}" placeholder="${fmtNum(f.obj)}"
+             onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur()"
+             onchange="onObjChange('${emp}','${f.lunes}',this)">h`
+        : fmtH(f.obj) + (f.cerrada && !f.revisada ? ` <span class="warn" title="Sin revisar: se usan 20h">?</span>` : "");
+
+      let cuerpo = `<span class="cal-emp-hrs ${cH}">${fmtH(f.hechas)}</span> / ${objHtml}<br>`;
+      if (f.cerrada) {
+        cuerpo += `<span class="${f.variacion>=0?"ok":"bad"}">${fmtVar(f.variacion)}</span>`;
+        if (f.liq) cuerpo += ` <span title="Liquidado">liq ${fmtVar(f.liq)}</span>`;
+        cuerpo += `<br><b class="${claseSaldo(f.saldo)}">${saldoCorto(f.saldo)}</b>`;
+      } else {
+        cuerpo += `<span style="font-size:9px">en curso</span>`;
+      }
+      return `<div class="cs">${head}<div class="cs-body">${cuerpo}</div></div>`;
     };
 
-    const objA_cal = lunesKey >= FECHA_CAMBIO_OBJETIVO ? Math.max(0, objetivoSemana(lunesKey) - vacA*OBJETIVO_DIA) : 0;
-    const balA_cal = totA - objA_cal;
     semHtml += `<div class="cal-day cal-total-semana" style="padding:8px 10px;border-left:2px solid rgba(151,39,46,0.4)">
-      ${bloque("Diego","#97272E",totD,objD,balD,saldoD,"Diego",lunesKey)}
-      <div style="border-top:1px solid #222;margin:3px 0"></div>
-      ${bloque("Jesús","#1565C0",totJ,objJ,balJ,saldoJ,"Jesus",lunesKey)}
-      <div style="border-top:1px solid #222;margin:3px 0"></div>
-      ${bloque("Álvarez","#2E7D32",totA,objA_cal,balA_cal,saldoA,"Alvarez",lunesKey)}
+      ${EMPLEADOS.map(bloque).join('<div class="cs-sep"></div>')}
     </div>`;
 
     html += semHtml;
@@ -1264,94 +1211,104 @@ function abrirDia(fechaStr) {
   renderGrid();
   renderStats();
 }
+
 // ── MODO ADMINISTRADOR ───────────────────────────────────────────
+function refrescarVistas() {
+  renderStats();
+  if (!document.getElementById("tab-resumen").classList.contains("hidden")) renderResumen();
+  if (!document.getElementById("tab-calendario").classList.contains("hidden")) renderCalendario();
+}
+
 function toggleAdmin() {
+  const btn = document.getElementById("btn-admin");
   if (modoAdmin) {
     modoAdmin = false;
-    document.getElementById("btn-admin").style.borderColor = "var(--gris-borde)";
-    document.getElementById("btn-admin").style.color = "var(--gris-texto)";
-    document.getElementById("btn-admin").textContent = "⚙ Admin";
-    if (document.getElementById("tab-calendario").classList.contains("hidden") === false) {
-      renderCalendario();
-    }
+    btn.style.borderColor = "var(--gris-borde)";
+    btn.style.color = "var(--gris-texto)";
+    btn.textContent = "⚙ Admin";
+    refrescarVistas();
     return;
   }
-  // Pedir PIN
-  var pin = prompt("PIN de administrador:");
+  const pin = prompt("PIN de administrador:");
   if (pin === PIN_ADMIN) {
     modoAdmin = true;
-    document.getElementById("btn-admin").style.borderColor = "var(--granate)";
-    document.getElementById("btn-admin").style.color = "var(--granate)";
-    document.getElementById("btn-admin").textContent = "⚙ Admin ON";
-    if (document.getElementById("tab-calendario").classList.contains("hidden") === false) {
-      renderCalendario();
-    }
-    alert("Modo administrador activado. Ahora puedes editar el saldo de cada semana directamente en el calendario.");
+    btn.style.borderColor = "var(--granate)";
+    btn.style.color = "var(--granate)";
+    btn.textContent = "⚙ Admin ON";
+    if (!document.getElementById("tab-calendario").classList.contains("hidden")) renderCalendario();
+    else showTab("resumen");
   } else if (pin !== null) {
     alert("PIN incorrecto");
   }
 }
 
-var pendingAjustes = {};
-
-function markDirty(uid) {
-  // Muestra el botón GUARDAR cuando se edita algo
-  var el = document.getElementById("guardar_"+uid);
-  if (el) el.style.display = "flex";
+// El admin cambia las horas que debía hacer esa semana. Vacío = volver a "sin revisar" (20h).
+function onObjChange(emp, lunes, input) {
+  const v = parseHoras(input.value);
+  if (Number.isNaN(v) || (v !== null && v < 0)) {
+    alert("Escribe un número de horas, por ejemplo 18 o 8,5");
+    refrescarVistas();
+    return;
+  }
+  guardarSemana(emp, lunes, v, ajusteSemana(emp, lunes).liq);
 }
 
-function commitAjuste(emp, lunesKey, uid) {
-  var objEl   = document.getElementById("obj_"  +uid);
-  var varEl   = document.getElementById("var_"  +uid);
-  var saldoEl = document.getElementById("saldo_"+uid);
-  if (!saldoEl) return;
-  var objV   = parseFloat(objEl   ? objEl.value   : 0) || 0;
-  var varV   = parseFloat(varEl   ? varEl.value   : 0) || 0;
-  var saldoV = parseFloat(saldoEl ? saldoEl.value : 0);
-  if (isNaN(saldoV) || saldoV < 0) { alert("Saldo inválido"); return; }
+function liquidar(emp, lunes) {
+  const f = filaSemana(emp, lunes);
+  if (!f || !f.cerrada) return;
+  const saldo = r2(f.saldoPrev + f.variacion);   // saldo al cierre de esa semana, antes de liquidar
+  if (saldo === 0) { alert(NOMBRES[emp] + " ya está al día esa semana."); return; }
+  const resp = prompt(
+    textoSaldo(emp, saldo) + " al cierre de la semana " + rangoSemana(lunes) + ".\n" +
+    "¿Cuántas horas se liquidan (pagadas o descontadas en nómina)?\n" +
+    "Deja " + fmtNum(Math.abs(saldo)) + " para dejarlo al día.",
+    fmtNum(Math.abs(saldo)));
+  if (resp === null) return;
+  const horas = parseHoras(resp);
+  if (horas === null || Number.isNaN(horas) || horas <= 0) { alert("Cantidad no válida"); return; }
+  // Liquidar mueve el saldo hacia 0: si debe horas suma, si se le deben resta
+  const liq = saldo < 0 ? horas : -horas;
+  guardarSemana(emp, lunes, f.revisada ? f.obj : null, r2(liq));
+}
+
+function quitarLiquidacion(emp, lunes) {
+  const f = filaSemana(emp, lunes);
+  if (!f) return;
+  if (!confirm("¿Quitar la liquidación de " + fmtH(Math.abs(f.liq)) + " de " + NOMBRES[emp] + " (semana " + rangoSemana(lunes) + ")?")) return;
+  guardarSemana(emp, lunes, f.revisada ? f.obj : null, 0);
+}
+
+async function guardarSemana(emp, lunes, obj, liq) {
   if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
-  ajustesSemana[emp][lunesKey]        = saldoV;
-  ajustesSemana[emp][lunesKey+"_obj"] = objV;
-  ajustesSemana[emp][lunesKey+"_var"] = varV;
+  const aj = ajustesSemana[emp];
+  const borrar = obj === null && !liq;
+  if (borrar) {
+    delete aj[lunes]; delete aj[lunes + "_obj"]; delete aj[lunes + "_var"];
+  } else {
+    aj[lunes + "_obj"] = codificarHoras(obj === null ? OBJETIVO_SEMANA_NUEVO : obj);
+    aj[lunes + "_var"] = codificarHoras(liq || 0);
+    const f = filaSemana(emp, lunes);
+    aj[lunes] = f && f.saldo !== null ? f.saldo : 0;   // solo informativo en Sheets (allí se redondea)
+  }
   localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
-  guardarAjusteEnSheets(emp, lunesKey, saldoV);
-  renderCalendario();
-  renderResumen();
-}
+  refrescarVistas();
 
-function borrarAjusteInline(emp, lunesKey, uid) {
-  if (!ajustesSemana[emp]) return;
-  delete ajustesSemana[emp][lunesKey];
-  delete ajustesSemana[emp][lunesKey+"_obj"];
-  delete ajustesSemana[emp][lunesKey+"_var"];
-  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
-  guardarAjusteEnSheets(emp, lunesKey, null);
-  renderCalendario();
-  renderResumen();
-}
-
-function editarSaldo(emp, lunesKey, saldoActual) {}
-function guardarAjusteInline(emp, lunesKey) {}
-function stageAjuste(emp, lunesKey, campo, valor) {}
-
-async function guardarAjusteEnSheets(emp, semana, saldo) {
-  const aj = ajustesSemana[emp] || {};
-  const obj  = aj[semana+"_obj"] !== undefined ? aj[semana+"_obj"] : 0;
-  const varh = aj[semana+"_var"] !== undefined ? aj[semana+"_var"] : 0;
+  setSyncStatus("loading", "Guardando...");
+  const body = borrar
+    ? { accion: "borrarAjuste", emp, semana: lunes }
+    : { accion: "guardarAjuste", emp, semana: lunes, saldo: aj[lunes], obj: aj[lunes + "_obj"], varh: aj[lunes + "_var"] };
   try {
-    if (saldo === null) {
-      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "borrarAjuste", emp, semana }) });
-    } else {
-      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ accion: "guardarAjuste", emp, semana, saldo, obj, varh }) });
-    }
-    // Actualizar localStorage como copia de seguridad
-    localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body) });
+    const json = await res.json();
+    if (json && json.ok === false) throw new Error(json.error);
+    setSyncStatus("ok", "Guardado · Sheets");
   } catch(e) {
-    // Si falla Sheets, al menos localStorage tiene la copia
-    localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
-    console.warn("Ajuste guardado solo en localStorage:", e);
+    setSyncStatus("err", "Error al guardar");
+    alert("No se pudo guardar en Sheets. El cambio está solo en este dispositivo: vuelve a intentarlo con conexión.");
   }
 }
+
+init();
 </script>
 </body>
 </html>
