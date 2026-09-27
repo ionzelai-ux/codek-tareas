@@ -444,12 +444,13 @@ const OBJETIVO_SEMANA = 30;
 const OBJETIVO_SEMANA_NUEVO = 20;
 
 // ── SALDO DE HORAS ──
-// El saldo se lleva semana a semana desde FECHA_ARRANQUE (lunes). Lo anterior es histórico.
+// El saldo se lleva semana a semana desde el lunes de inicio de cada trabajador.
 // Convención interna: saldo > 0 = horas a favor del trabajador (se las debes tú);
 //                     saldo < 0 = horas que el trabajador debe.
-// Saldos de arranque = los validados al cierre de la semana del 31-ago-2026.
-const FECHA_ARRANQUE = "2026-09-07";
-const SALDO_ARRANQUE = { Diego: -9.5, Jesus: -3.5, Alvarez: 0 };
+// Saldo inicial: Diego empezó debiendo 3h y Jesús 7h.
+const FECHA_ARRANQUE = "2026-06-29";
+const INICIO_EMP = { Diego: "2026-06-29", Jesus: "2026-06-29", Alvarez: "2026-09-07" };
+const SALDO_ARRANQUE = { Diego: -3, Jesus: -7, Alvarez: 0 };
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 // Nombres de display
@@ -535,6 +536,10 @@ function lunesDe(fecha) {
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return fmtFecha(d);
 }
+// "29 jun"
+function diaMes(fecha) {
+  return +fecha.slice(8,10) + " " + MESES[+fecha.slice(5,7) - 1].substring(0,3).toLowerCase();
+}
 // "7–13 sep"
 function rangoSemana(lunes) {
   const dom = sumarDias(lunes, 6);
@@ -614,7 +619,8 @@ function horasTotal(emp) {
 //   variación = horas hechas − horas que debía hacer
 //   saldo     = saldo semana anterior + variación + liquidación
 // Solo cuentan las semanas cerradas (domingo ya llegado). El objetivo lo fija el admin;
-// si no lo ha fijado se usan 20h y la semana sale como "sin revisar".
+// si no lo ha fijado se usa el de por defecto (30h hasta el 31-ago, 20h desde el 7-sep)
+// y la semana sale como "sin revisar".
 // El Apps Script guarda los ajustes como enteros (8,5 → 8). Para no perder las medias horas,
 // los valores con decimales se envían como ±(10000 + minutos): 8,5h → 10510. Los enteros van tal cual.
 function codificarHoras(h) {
@@ -644,11 +650,11 @@ function semanasSaldo(emp) {
   const hoyStr = hoy(), lunesHoy = lunesDe(hoyStr);
   const filas = [];
   let saldo = SALDO_ARRANQUE[emp] || 0;
-  for (let l = FECHA_ARRANQUE; l <= lunesHoy; l = sumarDias(l, 7)) {
+  for (let l = INICIO_EMP[emp]; l <= lunesHoy; l = sumarDias(l, 7)) {
     const cerrada = sumarDias(l, 6) <= hoyStr;
     const hechas = horasSemana(emp, l);
     const aj = ajusteSemana(emp, l);
-    const obj = aj.obj !== null ? aj.obj : OBJETIVO_SEMANA_NUEVO;
+    const obj = aj.obj !== null ? aj.obj : objetivoSemana(l);
     const variacion = r2(hechas - obj);
     const saldoPrev = saldo;
     if (cerrada) saldo = r2(saldo + variacion + aj.liq);
@@ -932,8 +938,8 @@ function renderResumen() {
 
   const sinRevisar = EMPLEADOS.reduce((n, emp) =>
     n + semanasSaldo(emp).filter(f => f.cerrada && !f.revisada).length, 0);
-  let nota = "Variación = horas hechas − horas que debía hacer. El saldo va sumando semana a semana desde el 7 sep (los saldos de agosto quedan como saldo inicial).";
-  if (sinRevisar) nota += ` <span class="warn">Hay ${sinRevisar} semana(s) cerrada(s) sin revisar: cuentan con 20h hasta que pongas el objetivo.</span>`;
+  let nota = "Variación = horas hechas − horas que debía hacer. El saldo va sumando semana a semana desde el primer día.";
+  if (sinRevisar) nota += ` <span class="warn">Hay ${sinRevisar} semana(s) cerrada(s) sin revisar: cuentan con el objetivo por defecto hasta que pongas el suyo.</span>`;
   nota += modoAdmin
     ? " <b class=\"bad\">Admin:</b> escribe en «Debía» las horas que tocaban (admite 8,5) y pulsa Enter. «Liquidar» salda las horas pagadas o descontadas."
     : " Pulsa «⚙ Admin» para poner el objetivo de cada semana o liquidar horas.";
@@ -949,7 +955,7 @@ function tablaResumen(emp) {
   // Mes de cada semana = el del jueves (el mes que tiene la mayoría de sus días)
   const mesDe = lunes => sumarDias(lunes, 3).slice(0, 7);
 
-  let html = `<tr class="inicial"><td>Saldo inicial (hasta 6 sep)</td><td></td><td></td><td></td><td></td>
+  let html = `<tr class="inicial"><td>Saldo inicial (${diaMes(INICIO_EMP[emp])})</td><td></td><td></td><td></td><td></td>
     <td class="${claseSaldo(SALDO_ARRANQUE[emp]||0)}">${saldoCorto(SALDO_ARRANQUE[emp]||0)}</td></tr>`;
 
   let mesActual = null, tot = null;
@@ -1096,7 +1102,7 @@ function renderInforme() {
 let calAnio = new Date().getFullYear();
 let calMes  = new Date().getMonth();
 
-// Objetivo histórico (antes de FECHA_ARRANQUE): solo para mostrar, no entra en el saldo
+// Objetivo por defecto de una semana si el admin no ha puesto otro
 function objetivoSemana(lunesKey) {
   return lunesKey >= FECHA_CAMBIO_OBJETIVO ? OBJETIVO_SEMANA_NUEVO : OBJETIVO_SEMANA;
 }
@@ -1166,15 +1172,9 @@ function renderCalendario() {
       const head = `<div class="cs-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}</div>`;
       const tot = horasSemana(emp, lunesKey);
 
-      if (lunesKey < FECHA_ARRANQUE) {
-        if (emp === "Alvarez") return `<div class="cs">${head}<div class="cs-body">—</div></div>`;
-        const vac = diasVacSemana(emp, lunesKey);
-        const objHist = Math.max(0, objetivoSemana(lunesKey) - vac * OBJETIVO_DIA);
-        return `<div class="cs">${head}<div class="cs-body">${fmtH(tot)} / ${fmtH(objHist)}<br><span style="font-size:9px">histórico</span></div></div>`;
-      }
-
       const f = semanas[emp][lunesKey];
-      if (!f) return `<div class="cs">${head}<div class="cs-body">—</div></div>`;  // semana futura
+      // Semana antes de que empezara a contar el saldo, o semana futura: solo horas
+      if (!f) return `<div class="cs">${head}<div class="cs-body">${tot > 0 ? fmtH(tot) : "—"}</div></div>`;
 
       const cH = f.hechas>=f.obj?"ok":f.hechas>=f.obj*.7?"warn":f.hechas>0?"bad":"vacio";
       const objHtml = modoAdmin
