@@ -212,10 +212,12 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('registro')">Registro diario</button>
-  <button class="tab" onclick="showTab('resumen')">Resumen</button>
-  <button class="tab" onclick="showTab('informe')">Informe de tareas</button>
-  <button class="tab" onclick="showTab('calendario')">Calendario</button>
+  <button class="tab active" data-tab="registro" onclick="showTab('registro')">Registro diario</button>
+  <button class="tab" data-tab="informe" onclick="showTab('informe')">Informe de tareas</button>
+  <button class="tab" data-tab="calendario" onclick="showTab('calendario')">Calendario</button>
+  <!-- Solo visibles en modo administrador -->
+  <button class="tab tab-admin hidden" data-tab="resumen" onclick="showTab('resumen')">⚙ Saldo semanal</button>
+  <button class="tab tab-admin hidden" data-tab="nominas" onclick="showTab('nominas')">⚙ Nóminas</button>
 </div>
 
 <div class="main">
@@ -250,7 +252,7 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
         <div class="stat-value ok" id="stat-total">0h</div>
         <div class="stat-sub">acumulado</div>
       </div>
-      <div class="stat">
+      <div class="stat" id="stat-card-saldo">
         <div class="stat-label">Saldo de horas</div>
         <div class="stat-value" id="stat-comp">0h</div>
         <div class="stat-sub" id="stat-comp-sub">—</div>
@@ -292,6 +294,22 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
     <div class="saldo-tiles" id="saldo-tiles"></div>
     <div class="res-nota" id="res-nota"></div>
     <div id="res-tablas"></div>
+  </div>
+
+  <!-- TAB NÓMINAS (solo admin) -->
+  <div id="tab-nominas" class="hidden">
+    <div class="cal-controls">
+      <button class="date-nav-btn" onclick="cambiarMesNom(-1)">‹</button>
+      <span class="cal-mes-label" id="nom-mes-label"></span>
+      <button class="date-nav-btn" onclick="cambiarMesNom(1)">›</button>
+    </div>
+    <div class="res-nota">
+      Contrato de 20h/semana desde el 1 sep → cada día laborable (L-V) cuenta 4h; hasta el 31 ago eran 30h → 6h.
+      Los días de vacaciones cuentan como hechos con la jornada de ese día. El exceso del mes se suma a lo que
+      arrastraba del mes anterior: si sale a su favor se le paga, si sale en contra lo debe.
+    </div>
+    <div class="nom-grid" id="nom-cards"></div>
+    <div id="nom-historico"></div>
   </div>
 
   <!-- TAB INFORME -->
@@ -404,8 +422,27 @@ table.rtable tr.en-curso td { color: var(--gris-texto); }
 .cs-body .adm-in { width: 44px; font-size: 10px; padding: 1px 4px; }
 .cs-sep { border-top: 1px solid #222; margin: 3px 0; }
 
+/* ── NÓMINAS ── */
+.nom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 26px; align-items: start; }
+.nom-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
+.nom-card .res-card-head { flex-wrap: wrap; }
+.nom-estado { margin-left: auto; font-size: 9px; letter-spacing: 0.06em; color: var(--amarillo); text-transform: none; }
+.nom-fila { display: flex; justify-content: space-between; gap: 10px; padding: 7px 16px; font-size: 12px; color: var(--blanco-dim); border-bottom: 1px solid rgba(42,42,42,0.5); }
+.nom-fila span:last-child { font-family: "Space Mono", monospace; color: var(--blanco); white-space: nowrap; }
+.nom-fila small { color: var(--gris-texto); font-size: 10px; }
+.nom-fila.fuerte { background: rgba(0,0,0,0.2); color: var(--blanco); font-weight: 600; }
+.nom-resultado { padding: 12px 16px; border-bottom: 1px solid var(--gris-borde); }
+.nom-resultado-lbl { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gris-texto); margin-bottom: 4px; }
+.nom-resultado-val { font-family: "Space Mono", monospace; font-size: 20px; font-weight: 700; }
+.nom-resultado.perdon { background: rgba(76,175,80,0.07); }
+.nom-resultado small { display: block; font-size: 11px; color: var(--gris-texto); margin-top: 4px; font-family: "Inter", sans-serif; font-weight: 400; }
+.nom-acciones { padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+.nom-acciones .adm-btn { margin-left: 0; padding: 5px 10px; }
+.nom-aviso { padding: 8px 16px; font-size: 11px; color: var(--amarillo); border-bottom: 1px solid rgba(42,42,42,0.5); }
+
 @media (max-width: 800px) {
   .saldo-tiles { grid-template-columns: 1fr; }
+  .nom-grid { grid-template-columns: 1fr; }
   .res-card { overflow-x: auto; }
 }
 </style>
@@ -438,17 +475,19 @@ for (let h = 7; h < 21; h++) {
   FRANJAS.push(pad(h) + ":30");
 }
 
-const FECHA_CAMBIO_OBJETIVO = "2026-09-07"; // A partir de aquí el objetivo por defecto baja a 20h
-const OBJETIVO_DIA = 6;
-const OBJETIVO_SEMANA = 30;
-const OBJETIVO_SEMANA_NUEVO = 20;
+// ── JORNADA ──
+// Hasta el 31-ago el contrato era de 30h/semana (6h por día laborable); desde el 1-sep es de 20h (4h).
+// Lo que deben hacer sale siempre del contrato: jornada × días laborables (L-V), y cada día de
+// vacaciones cuenta como hecho con la jornada de ese día.
+const FECHA_CAMBIO_JORNADA = "2026-09-01";
+const JORNADA_ANTES = 6, JORNADA_AHORA = 4;
+// Horas complementarias a tiempo parcial: por encima de 20h + 30% = 26h/semana se avisa
+const LIMITE_SEMANA = 26;
 
 // ── SALDO DE HORAS ──
-// El saldo se lleva semana a semana desde el lunes de inicio de cada trabajador.
 // Convención interna: saldo > 0 = horas a favor del trabajador (se las debes tú);
 //                     saldo < 0 = horas que el trabajador debe.
 // Saldo inicial: Diego empezó debiendo 3h y Jesús 7h.
-const FECHA_ARRANQUE = "2026-06-29";
 const INICIO_EMP = { Diego: "2026-06-29", Jesus: "2026-06-29", Alvarez: "2026-09-07" };
 const SALDO_ARRANQUE = { Diego: -3, Jesus: -7, Alvarez: 0 };
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -469,13 +508,16 @@ let infPeriodo = "semana";
 let vacaciones = { Diego: {}, Jesus: {}, Alvarez: {} };
 const VAC_PREVIAS = { Diego: 1, Jesus: 8, Alvarez: 0 };
 
-const PIN_ADMIN = "mnk";
+// SHA-256 del PIN de administrador (así el PIN no aparece escrito en el código)
+const PIN_HASH = "3e388cd4d0a5abdfcb8888a99b2fbf044e166c4d41707412009145173f478c5f";
 let modoAdmin = false;
-// ajustesSemana (viene de Sheets), clave = lunes de la semana:
-//   "2026-09-07_obj" → horas que debía hacer esa semana (lo fija el admin; si falta, 20h)
-//   "2026-09-07_var" → liquidación: horas saldadas esa semana (pagadas/descontadas)
-//   "2026-09-07"     → saldo al cierre, solo informativo en Sheets (la app siempre lo recalcula)
-let ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
+// ajustes (viene de Sheets, hoja de ajustes; cada clave guarda valor, _obj y _var):
+//   "M2026-09_obj" → horas de deuda perdonadas ese mes
+//   "M2026-09_var" → horas liquidadas en la nómina de ese mes (+ pagadas, − descontadas)
+//   "M2026-09"     → saldo final del mes, solo informativo (la app siempre lo recalcula)
+//   "V2026-09-01"  → día de vacaciones
+// Las claves de semanas antiguas ("2026-09-07_obj"...) ya no se usan.
+let ajustes = { Diego: {}, Jesus: {}, Alvarez: {} };
 
 // ── INIT ─────────────────────────────────────────────────────────
 async function init() {
@@ -484,8 +526,8 @@ async function init() {
   // Cargar desde localStorage como fallback inmediato
   const vacGuardadas = localStorage.getItem("codek_vacaciones");
   if (vacGuardadas) { try { vacaciones = JSON.parse(vacGuardadas); } catch(e) {} }
-  const adjSemGuardados = localStorage.getItem("codek_ajustes_semana");
-  if (adjSemGuardados) { try { ajustesSemana = JSON.parse(adjSemGuardados); } catch(e) {} }
+  const adjGuardados = localStorage.getItem("codek_ajustes_semana");
+  if (adjGuardados) { try { ajustes = JSON.parse(adjGuardados); } catch(e) {} }
   let backup = {};
   try { backup = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}"); } catch(e) {}
   try {
@@ -495,11 +537,12 @@ async function init() {
       datos = json.datos || {};
       // Sheets tiene prioridad — sobreescribe localStorage
       if (json.ajustes) {
-        ajustesSemana = { Diego: {}, Jesus: {}, Alvarez: {} };
+        ajustes = { Diego: {}, Jesus: {}, Alvarez: {} };
         Object.keys(json.ajustes).forEach(emp => {
-          if (json.ajustes[emp]) ajustesSemana[emp] = json.ajustes[emp];
+          if (json.ajustes[emp]) ajustes[emp] = json.ajustes[emp];
         });
-        localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+        localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustes));
+        sincronizarVacaciones();
       }
       // Días editados en este dispositivo que aún no llegaron a Sheets: la copia local manda
       Object.keys(pendientes).forEach(clave => {
@@ -572,20 +615,65 @@ function diasVacaciones(emp) {
 }
 
 function toggleVacaciones() {
-  const esVac = esDiaVacaciones(empleadoActual, fechaActual);
-  if (!vacaciones[empleadoActual]) vacaciones[empleadoActual] = {};
+  const emp = empleadoActual, fecha = fechaActual;
+  const esVac = esDiaVacaciones(emp, fecha);
+  if (!vacaciones[emp]) vacaciones[emp] = {};
   if (esVac) {
-    delete vacaciones[empleadoActual][fechaActual];
+    delete vacaciones[emp][fecha];
   } else {
-    vacaciones[empleadoActual][fechaActual] = true;
+    vacaciones[emp][fecha] = true;
     // Limpiar franjas del día si se marca como vacaciones
-    if (datos[empleadoActual]) delete datos[empleadoActual][fechaActual];
+    if (datos[emp]) delete datos[emp][fecha];
   }
   localStorage.setItem("codek_vacaciones", JSON.stringify(vacaciones));
   renderGrid();
   renderStats();
+  subirVacacion(emp, fecha, !esVac);
   // Autoguardar el día (vacío) en Sheets para limpiar registros
   dispararAutoguardado();
+}
+
+// Las vacaciones se guardan en Sheets (clave "V" + fecha) para que todos los dispositivos
+// vean lo mismo. Sheets manda; lo marcado solo en este dispositivo se sube una única vez.
+function sincronizarVacaciones() {
+  const enSheets = { Diego: {}, Jesus: {}, Alvarez: {} };
+  EMPLEADOS.forEach(emp => {
+    Object.keys(ajustes[emp] || {}).forEach(k => {
+      if (/^V\d{4}-\d\d-\d\d$/.test(k)) enSheets[emp][k.slice(1)] = true;
+    });
+  });
+  if (!localStorage.getItem("codek_vac_subidas")) {
+    EMPLEADOS.forEach(emp => {
+      Object.keys(vacaciones[emp] || {}).forEach(fecha => {
+        if (vacaciones[emp][fecha] && !enSheets[emp][fecha]) {
+          enSheets[emp][fecha] = true;
+          subirVacacion(emp, fecha, true);
+        }
+      });
+    });
+    localStorage.setItem("codek_vac_subidas", "1");
+  }
+  vacaciones = enSheets;
+  localStorage.setItem("codek_vacaciones", JSON.stringify(vacaciones));
+}
+
+async function subirVacacion(emp, fecha, marcar) {
+  const clave = "V" + fecha;
+  if (!ajustes[emp]) ajustes[emp] = {};
+  if (marcar) { ajustes[emp][clave] = 1; ajustes[emp][clave + "_obj"] = 0; ajustes[emp][clave + "_var"] = 0; }
+  else { delete ajustes[emp][clave]; delete ajustes[emp][clave + "_obj"]; delete ajustes[emp][clave + "_var"]; }
+  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustes));
+  const body = marcar
+    ? { accion: "guardarAjuste", emp, semana: clave, saldo: 1, obj: 0, varh: 0 }
+    : { accion: "borrarAjuste", emp, semana: clave };
+  try {
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body) });
+    const json = await res.json();
+    if (json && json.ok === false) throw new Error(json.error);
+  } catch(e) {
+    setSyncStatus("err", "Error al guardar");
+    alert("No se pudo guardar la vacación en Sheets. Vuelve a marcarla cuando haya conexión.");
+  }
 }
 
 function actualizarBannerVacaciones() {
@@ -615,12 +703,24 @@ function horasTotal(emp) {
 }
 
 // ── SALDO DE HORAS ───────────────────────────────────────────────
-// Una sola regla, sin excepciones:
-//   variación = horas hechas − horas que debía hacer
-//   saldo     = saldo semana anterior + variación + liquidación
-// Solo cuentan las semanas cerradas (domingo ya llegado). El objetivo lo fija el admin;
-// si no lo ha fijado se usa el de por defecto (30h hasta el 31-ago, 20h desde el 7-sep)
-// y la semana sale como "sin revisar".
+// Una sola regla, día a día:
+//   debía hacer = jornada del día si es laborable (L-V), desde su fecha de inicio, y no está de vacaciones
+//   saldo       = saldo inicial + Σ (horas hechas − debía hacer) + ajustes de cada mes cerrado
+// Los ajustes del mes (perdón de deuda y horas liquidadas en nómina) cuentan el último día del mes.
+// La vista semanal y el cierre mensual salen de este mismo cálculo, así que siempre cuadran.
+function jornadaDia(fecha) { return fecha >= FECHA_CAMBIO_JORNADA ? JORNADA_AHORA : JORNADA_ANTES; }
+function esLaborable(fecha) {
+  const d = new Date(fecha + "T12:00:00").getDay();
+  return d >= 1 && d <= 5;
+}
+function objetivoDia(emp, fecha) {
+  if (fecha < INICIO_EMP[emp] || !esLaborable(fecha) || esDiaVacaciones(emp, fecha)) return 0;
+  return jornadaDia(fecha);
+}
+function ultimoDiaMes(mes) {
+  const [y, m] = mes.split("-").map(Number);
+  return fmtFecha(new Date(y, m, 0));
+}
 // El Apps Script guarda los ajustes como enteros (8,5 → 8). Para no perder las medias horas,
 // los valores con decimales se envían como ±(10000 + minutos): 8,5h → 10510. Los enteros van tal cual.
 function codificarHoras(h) {
@@ -632,14 +732,26 @@ function decodificarHoras(v) {
   v = Number(v);
   return Math.abs(v) >= 10000 ? r2(Math.sign(v) * (Math.abs(v) - 10000) / 60) : v;
 }
-function ajusteSemana(emp, lunes) {
-  const aj = ajustesSemana[emp] || {};
-  const vacio = v => v === undefined || v === null || v === "";
-  const obj = aj[lunes + "_obj"], liq = aj[lunes + "_var"];
-  return {
-    obj: vacio(obj) ? null : decodificarHoras(obj),
-    liq: vacio(liq) ? 0 : decodificarHoras(liq)
-  };
+function ajusteMes(emp, mes) {
+  const aj = ajustes[emp] || {};
+  const leer = k => (aj[k] === undefined || aj[k] === null || aj[k] === "") ? 0 : decodificarHoras(aj[k]);
+  return { perdon: leer("M" + mes + "_obj"), liq: leer("M" + mes + "_var") };
+}
+// Neto de los ajustes mensuales que caen dentro de [desde, hasta]
+function ajustesEntre(emp, desde, hasta) {
+  let total = 0;
+  for (let mes = INICIO_EMP[emp].slice(0, 7); mes <= hasta.slice(0, 7); mes = sumarDias(ultimoDiaMes(mes), 1).slice(0, 7)) {
+    const fin = ultimoDiaMes(mes);
+    if (fin < desde || fin > hasta) continue;
+    const a = ajusteMes(emp, mes);
+    total += a.perdon - a.liq;
+  }
+  return r2(total);
+}
+function objetivoSemana(emp, lunes) {
+  let t = 0;
+  for (let i = 0; i < 5; i++) t += objetivoDia(emp, sumarDias(lunes, i));
+  return t;
 }
 function diasVacSemana(emp, lunes) {
   let n = 0;
@@ -650,16 +762,17 @@ function semanasSaldo(emp) {
   const hoyStr = hoy(), lunesHoy = lunesDe(hoyStr);
   const filas = [];
   let saldo = SALDO_ARRANQUE[emp] || 0;
-  for (let l = INICIO_EMP[emp]; l <= lunesHoy; l = sumarDias(l, 7)) {
-    const cerrada = sumarDias(l, 6) <= hoyStr;
+  for (let l = lunesDe(INICIO_EMP[emp]); l <= lunesHoy; l = sumarDias(l, 7)) {
+    const domingo = sumarDias(l, 6);
+    const cerrada = domingo <= hoyStr;
     const hechas = horasSemana(emp, l);
-    const aj = ajusteSemana(emp, l);
-    const obj = aj.obj !== null ? aj.obj : objetivoSemana(l);
+    const obj = objetivoSemana(emp, l);
     const variacion = r2(hechas - obj);
+    const ajuste = ajustesEntre(emp, l, domingo);
     const saldoPrev = saldo;
-    if (cerrada) saldo = r2(saldo + variacion + aj.liq);
-    filas.push({ lunes: l, cerrada, hechas, obj, revisada: aj.obj !== null, variacion,
-                 liq: aj.liq, saldoPrev, saldo: cerrada ? saldo : null, vac: diasVacSemana(emp, l) });
+    if (cerrada) saldo = r2(saldo + variacion + ajuste);
+    filas.push({ lunes: l, cerrada, hechas, obj, variacion, ajuste, saldoPrev,
+                 saldo: cerrada ? saldo : null, vac: diasVacSemana(emp, l) });
   }
   return filas;
 }
@@ -667,8 +780,49 @@ function saldoActual(emp) {
   const cerradas = semanasSaldo(emp).filter(f => f.cerrada);
   return cerradas.length ? cerradas[cerradas.length - 1].saldo : (SALDO_ARRANQUE[emp] || 0);
 }
-function filaSemana(emp, lunes) {
-  return semanasSaldo(emp).find(f => f.lunes === lunes) || null;
+
+// ── CIERRE MENSUAL ──
+function mesesEmp(emp) {
+  const meses = [], ultimo = hoy().slice(0, 7);
+  for (let mes = INICIO_EMP[emp].slice(0, 7); mes <= ultimo; mes = sumarDias(ultimoDiaMes(mes), 1).slice(0, 7)) meses.push(mes);
+  return meses;
+}
+function cierresMensuales(emp) {
+  const hoyStr = hoy();
+  let saldo = SALDO_ARRANQUE[emp] || 0;
+  return mesesEmp(emp).map(mes => {
+    const fin = ultimoDiaMes(mes);
+    const r = { mes, enCurso: fin > hoyStr, saldoAnterior: saldo, jornadas: {}, bruto: 0,
+                diasVac: 0, vac: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [] };
+    for (let f = mes + "-01"; f <= fin; f = sumarDias(f, 1)) {
+      if (f < INICIO_EMP[emp]) continue;   // lo anterior al inicio no cuenta (ya está en el saldo inicial)
+      r.hechas += horasDelDia(emp, f);
+      if (!esLaborable(f)) continue;
+      const j = jornadaDia(f);
+      r.bruto += j;
+      r.jornadas[j] = (r.jornadas[j] || 0) + 1;
+      if (esDiaVacaciones(emp, f)) { r.diasVac++; r.vac += j; }
+      // Pendiente: días futuros, y hoy si aún no ha apuntado nada
+      else if (f > hoyStr || (f === hoyStr && !horasDelDia(emp, f))) { r.diasPend++; r.horasPend += j; }
+    }
+    // Semanas de este mes (por su jueves) que pasan del límite de horas complementarias
+    for (let l = lunesDe(mes + "-01"); l <= fin; l = sumarDias(l, 7)) {
+      if (sumarDias(l, 3).slice(0, 7) !== mes || l < FECHA_CAMBIO_JORNADA) continue;
+      const h = horasSemana(emp, l);
+      if (h > LIMITE_SEMANA) r.semanasLimite.push({ lunes: l, horas: h });
+    }
+    r.hechas = r2(r.hechas);
+    r.debia = r2(r.bruto - r.vac);
+    r.exceso = r2(r.hechas - r.debia);
+    r.saldoReal = r2(saldo + r.exceso);
+    const a = ajusteMes(emp, mes);
+    r.perdon = a.perdon;
+    r.liq = a.liq;
+    r.saldoConPerdon = r2(r.saldoReal + r.perdon);
+    r.saldoFinal = r2(r.saldoConPerdon - r.liq);
+    saldo = r.saldoFinal;
+    return r;
+  });
 }
 function textoSaldo(emp, s) {
   s = r2(s);
@@ -847,24 +1001,18 @@ function renderStats() {
   const comp = saldoActual(emp);
 
   const sh = document.getElementById("stat-hoy");
+  const jor = jornadaDia(fechaActual);
   if (esVac) {
     sh.textContent = "☀";
     sh.className = "stat-value warn";
     document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "vacaciones";
   } else {
-    sh.textContent = hd+"h";
-    sh.className = "stat-value "+(hd>=OBJETIVO_DIA?"ok":hd>=OBJETIVO_DIA*.7?"warn":"bad");
-    document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "de 6h objetivo";
+    sh.textContent = fmtH(hd);
+    sh.className = "stat-value "+(hd>=jor?"ok":hd>=jor*.7?"warn":"bad");
+    document.querySelector("#stat-hoy").parentElement.querySelector(".stat-sub").textContent = "jornada: " + jor + "h";
   }
 
-  const lunesSel = lunesDe(fechaActual);
-  let objSem;
-  if (lunesSel >= FECHA_ARRANQUE) {
-    const aj = ajusteSemana(emp, lunesSel);
-    objSem = aj.obj !== null ? aj.obj : OBJETIVO_SEMANA_NUEVO;
-  } else {
-    objSem = objetivoSemana(lunesSel);
-  }
+  const objSem = objetivoSemana(emp, lunesDe(fechaActual));
   const ss = document.getElementById("stat-semana");
   ss.textContent = fmtH(hs);
   ss.className = "stat-value "+(hs>=objSem?"ok":hs>=objSem*.7?"warn":"bad");
@@ -872,6 +1020,9 @@ function renderStats() {
 
   document.getElementById("stat-total").textContent = fmtH(horasTotal(emp));
 
+  // El saldo solo lo ve el administrador
+  document.getElementById("stat-card-saldo").classList.toggle("hidden", !modoAdmin);
+  document.querySelector(".stats-row").style.gridTemplateColumns = modoAdmin ? "" : "repeat(4, 1fr)";
   const sc = document.getElementById("stat-comp");
   sc.textContent = fmtH(Math.abs(comp));
   sc.className = "stat-value " + claseSaldo(comp);
@@ -892,12 +1043,17 @@ async function guardar() {
 }
 
 // ── TABS ─────────────────────────────────────────────────────────
+const TABS = ["registro","informe","calendario","resumen","nominas"];
+const TABS_ADMIN = ["resumen","nominas"];
+let tabActual = "registro";
+
 function showTab(tab) {
-  ["registro","resumen","informe","calendario"].forEach(t =>
-    document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab));
-  document.querySelectorAll(".tab").forEach((t,i) =>
-    t.classList.toggle("active", ["registro","resumen","informe","calendario"][i]===tab));
+  if (TABS_ADMIN.includes(tab) && !modoAdmin) tab = "registro";
+  tabActual = tab;
+  TABS.forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab));
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab===tab));
   if (tab==="resumen") renderResumen();
+  if (tab==="nominas") renderNominas();
   if (tab==="informe") renderInforme();
   if (tab==="calendario") renderCalendario();
 }
@@ -936,14 +1092,10 @@ function renderResumen() {
     </button>`;
   }).join("");
 
-  const sinRevisar = EMPLEADOS.reduce((n, emp) =>
-    n + semanasSaldo(emp).filter(f => f.cerrada && !f.revisada).length, 0);
-  let nota = "Variación = horas hechas − horas que debía hacer. El saldo va sumando semana a semana desde el primer día.";
-  if (sinRevisar) nota += ` <span class="warn">Hay ${sinRevisar} semana(s) cerrada(s) sin revisar: cuentan con el objetivo por defecto hasta que pongas el suyo.</span>`;
-  nota += modoAdmin
-    ? " <b class=\"bad\">Admin:</b> escribe en «Debía» las horas que tocaban (admite 8,5) y pulsa Enter. «Liquidar» salda las horas pagadas o descontadas."
-    : " Pulsa «⚙ Admin» para poner el objetivo de cada semana o liquidar horas.";
-  document.getElementById("res-nota").innerHTML = nota;
+  document.getElementById("res-nota").innerHTML =
+    "Debía = jornada del contrato × días laborables (6h/día hasta el 31 ago, 4h/día desde el 1 sep; " +
+    "las vacaciones no cuentan). Variación = hechas − debía. El saldo va sumando desde el primer día. " +
+    "«Ajustes» son los perdones y pagos registrados en ⚙ Nóminas (cuentan el último día del mes).";
 
   const emps = resEmp === "todos" ? EMPLEADOS : [resEmp];
   document.getElementById("res-tablas").innerHTML = emps.map(tablaResumen).join("");
@@ -964,7 +1116,7 @@ function tablaResumen(emp) {
     return `<tr class="subtotal"><td>Total ${MESES[+mesActual.slice(5,7)-1].toLowerCase()}</td>
       <td>${fmtH(tot.hechas)}</td><td>${fmtH(tot.obj)}</td>
       <td class="${tot.variacion>=0?"ok":"bad"}">${fmtVar(tot.variacion)}</td>
-      <td>${tot.liq ? fmtVar(tot.liq) : ""}</td>
+      <td>${tot.ajuste ? fmtVar(tot.ajuste) : ""}</td>
       <td class="${claseSaldo(tot.saldo)}">${saldoCorto(tot.saldo)}</td></tr>`;
   };
 
@@ -973,37 +1125,27 @@ function tablaResumen(emp) {
     if (mes !== mesActual) {
       html += cerrarMes();
       mesActual = mes;
-      tot = { hechas: 0, obj: 0, variacion: 0, liq: 0, saldo: 0, semanas: 0 };
+      tot = { hechas: 0, obj: 0, variacion: 0, ajuste: 0, saldo: 0, semanas: 0 };
       html += `<tr class="mes"><td colspan="6">${MESES[+mes.slice(5,7)-1]} ${mes.slice(0,4)}</td></tr>`;
     }
     if (f.cerrada) {
       tot.hechas += f.hechas; tot.obj += f.obj; tot.variacion = r2(tot.variacion + f.variacion);
-      tot.liq = r2(tot.liq + f.liq); tot.saldo = f.saldo; tot.semanas++;
+      tot.ajuste = r2(tot.ajuste + f.ajuste); tot.saldo = f.saldo; tot.semanas++;
     }
 
-    const vac = f.vac ? `<span class="tag tag-vac" title="Días de vacaciones marcados (L-V)">☀ ${f.vac}d vac</span>` : "";
-    const rev = (f.cerrada && !f.revisada) ? `<span class="tag tag-rev">sin revisar</span>` : "";
-    const objCell = modoAdmin
-      ? `<input class="adm-in" inputmode="decimal" value="${f.revisada ? fmtNum(f.obj) : ""}" placeholder="${fmtNum(f.obj)}"
-           onkeydown="if(event.key==='Enter')this.blur()" onchange="onObjChange('${emp}','${f.lunes}',this)">h${rev}`
-      : `${fmtH(f.obj)}${rev}`;
-
-    let liqCell = f.liq ? `<span title="Liquidación">${fmtVar(f.liq)}</span>` : "";
-    if (modoAdmin && f.cerrada) {
-      liqCell += f.liq
-        ? `<button class="adm-btn" onclick="quitarLiquidacion('${emp}','${f.lunes}')">deshacer</button>`
-        : `<button class="adm-btn" onclick="liquidar('${emp}','${f.lunes}')">Liquidar</button>`;
-    }
+    const vac = f.vac ? `<span class="tag tag-vac" title="Días de vacaciones (L-V)">☀ ${f.vac}d vac</span>` : "";
+    const lim = (f.lunes >= FECHA_CAMBIO_JORNADA && f.hechas > LIMITE_SEMANA)
+      ? `<span class="tag tag-rev" title="Más de ${LIMITE_SEMANA}h: por encima del límite habitual de horas complementarias">⚠ +${LIMITE_SEMANA}h</span>` : "";
 
     if (f.cerrada) {
-      html += `<tr><td>${rangoSemana(f.lunes)}${vac}</td>
-        <td>${fmtH(f.hechas)}</td><td>${objCell}</td>
+      html += `<tr><td>${rangoSemana(f.lunes)}${vac}${lim}</td>
+        <td>${fmtH(f.hechas)}</td><td>${fmtH(f.obj)}</td>
         <td class="${f.variacion>=0?"ok":"bad"}">${fmtVar(f.variacion)}</td>
-        <td>${liqCell}</td>
+        <td>${f.ajuste ? fmtVar(f.ajuste) : ""}</td>
         <td class="${claseSaldo(f.saldo)}">${saldoCorto(f.saldo)}</td></tr>`;
     } else {
-      html += `<tr class="en-curso"><td>${rangoSemana(f.lunes)}${vac}</td>
-        <td>${fmtH(f.hechas)}</td><td>${objCell}</td>
+      html += `<tr class="en-curso"><td>${rangoSemana(f.lunes)}${vac}${lim}</td>
+        <td>${fmtH(f.hechas)}</td><td>${fmtH(f.obj)}</td>
         <td colspan="2">en curso</td><td>—</td></tr>`;
     }
   });
@@ -1012,7 +1154,7 @@ function tablaResumen(emp) {
   return `<div class="res-card">
     <div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}
       <span class="res-saldo ${claseSaldo(s)}">${textoSaldo(emp, s)}</span></div>
-    <table class="rtable"><thead><tr><th>Semana</th><th>Hechas</th><th>Debía</th><th>Variación</th><th>Liquidado</th><th>Saldo</th></tr></thead>
+    <table class="rtable"><thead><tr><th>Semana</th><th>Hechas</th><th>Debía</th><th>Variación</th><th>Ajustes</th><th>Saldo</th></tr></thead>
     <tbody>${html}</tbody></table></div>`;
 }
 
@@ -1102,11 +1244,6 @@ function renderInforme() {
 let calAnio = new Date().getFullYear();
 let calMes  = new Date().getMonth();
 
-// Objetivo por defecto de una semana si el admin no ha puesto otro
-function objetivoSemana(lunesKey) {
-  return lunesKey >= FECHA_CAMBIO_OBJETIVO ? OBJETIVO_SEMANA_NUEVO : OBJETIVO_SEMANA;
-}
-
 function cambiarMes(delta) {
   calMes += delta;
   if (calMes > 11) { calMes = 0; calAnio++; }
@@ -1160,7 +1297,8 @@ function renderCalendario() {
         if (esDiaVacaciones(emp, fechaStr))
           return `<div class="cal-emp-row">${dot}<span class="cal-vac-label">☀ vac</span></div>`;
         const h = horasDelDia(emp, fechaStr);
-        const c = "cal-emp-hrs "+(h===0?"vacio":h>=OBJETIVO_DIA?"ok":h>=OBJETIVO_DIA*.5?"warn":"bad");
+        const jor = jornadaDia(fechaStr);
+        const c = "cal-emp-hrs "+(h===0?"vacio":h>=jor?"ok":h>=jor*.5?"warn":"bad");
         return `<div class="cal-emp-row">${dot}<span class="${c}">${h>0?fmtH(h):"—"}</span><span class="cal-emp-name">${NOMBRES[emp]}</span></div>`;
       }).join("");
 
@@ -1177,19 +1315,17 @@ function renderCalendario() {
       if (!f) return `<div class="cs">${head}<div class="cs-body">${tot > 0 ? fmtH(tot) : "—"}</div></div>`;
 
       const cH = f.hechas>=f.obj?"ok":f.hechas>=f.obj*.7?"warn":f.hechas>0?"bad":"vacio";
-      const objHtml = modoAdmin
-        ? `<input class="adm-in" inputmode="decimal" value="${f.revisada ? fmtNum(f.obj) : ""}" placeholder="${fmtNum(f.obj)}"
-             onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur()"
-             onchange="onObjChange('${emp}','${f.lunes}',this)">h`
-        : fmtH(f.obj) + (f.cerrada && !f.revisada ? ` <span class="warn" title="Sin revisar: se usan 20h">?</span>` : "");
-
-      let cuerpo = `<span class="cal-emp-hrs ${cH}">${fmtH(f.hechas)}</span> / ${objHtml}<br>`;
-      if (f.cerrada) {
-        cuerpo += `<span class="${f.variacion>=0?"ok":"bad"}">${fmtVar(f.variacion)}</span>`;
-        if (f.liq) cuerpo += ` <span title="Liquidado">liq ${fmtVar(f.liq)}</span>`;
-        cuerpo += `<br><b class="${claseSaldo(f.saldo)}">${saldoCorto(f.saldo)}</b>`;
-      } else {
-        cuerpo += `<span style="font-size:9px">en curso</span>`;
+      let cuerpo = `<span class="cal-emp-hrs ${cH}">${fmtH(f.hechas)}</span> / ${fmtH(f.obj)}`;
+      // Variación y saldo solo para el administrador
+      if (modoAdmin) {
+        cuerpo += "<br>";
+        if (f.cerrada) {
+          cuerpo += `<span class="${f.variacion>=0?"ok":"bad"}">${fmtVar(f.variacion)}</span>`;
+          if (f.ajuste) cuerpo += ` <span title="Perdón / pago del mes">aj ${fmtVar(f.ajuste)}</span>`;
+          cuerpo += `<br><b class="${claseSaldo(f.saldo)}">${saldoCorto(f.saldo)}</b>`;
+        } else {
+          cuerpo += `<span style="font-size:9px">en curso</span>`;
+        }
       }
       return `<div class="cs">${head}<div class="cs-body">${cuerpo}</div></div>`;
     };
@@ -1213,90 +1349,188 @@ function abrirDia(fechaStr) {
 }
 
 // ── MODO ADMINISTRADOR ───────────────────────────────────────────
+// Ojo: esto solo oculta pantallas. Los datos siguen llegando al navegador de cualquiera que abra
+// la página; no es una protección real frente a alguien que mire el código.
 function refrescarVistas() {
   renderStats();
-  if (!document.getElementById("tab-resumen").classList.contains("hidden")) renderResumen();
-  if (!document.getElementById("tab-calendario").classList.contains("hidden")) renderCalendario();
+  if (tabActual === "resumen") renderResumen();
+  if (tabActual === "nominas") renderNominas();
+  if (tabActual === "calendario") renderCalendario();
 }
 
-function toggleAdmin() {
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function aplicarModoAdmin() {
   const btn = document.getElementById("btn-admin");
+  btn.style.borderColor = modoAdmin ? "var(--granate)" : "var(--gris-borde)";
+  btn.style.color = modoAdmin ? "var(--granate)" : "var(--gris-texto)";
+  btn.textContent = modoAdmin ? "⚙ Admin ON" : "⚙ Admin";
+  document.querySelectorAll(".tab-admin").forEach(b => b.classList.toggle("hidden", !modoAdmin));
+  if (!modoAdmin && TABS_ADMIN.includes(tabActual)) showTab("registro");
+  else refrescarVistas();
+}
+
+async function toggleAdmin() {
   if (modoAdmin) {
     modoAdmin = false;
-    btn.style.borderColor = "var(--gris-borde)";
-    btn.style.color = "var(--gris-texto)";
-    btn.textContent = "⚙ Admin";
-    refrescarVistas();
+    aplicarModoAdmin();
     return;
   }
   const pin = prompt("PIN de administrador:");
-  if (pin === PIN_ADMIN) {
+  if (pin === null) return;
+  if (await hashPin(pin) === PIN_HASH) {
     modoAdmin = true;
-    btn.style.borderColor = "var(--granate)";
-    btn.style.color = "var(--granate)";
-    btn.textContent = "⚙ Admin ON";
-    if (!document.getElementById("tab-calendario").classList.contains("hidden")) renderCalendario();
-    else showTab("resumen");
-  } else if (pin !== null) {
+    aplicarModoAdmin();
+    showTab("nominas");
+  } else {
     alert("PIN incorrecto");
   }
 }
 
-// El admin cambia las horas que debía hacer esa semana. Vacío = volver a "sin revisar" (20h).
-function onObjChange(emp, lunes, input) {
-  const v = parseHoras(input.value);
-  if (Number.isNaN(v) || (v !== null && v < 0)) {
-    alert("Escribe un número de horas, por ejemplo 18 o 8,5");
-    refrescarVistas();
-    return;
+// ── NÓMINAS (solo admin) ─────────────────────────────────────────
+let nomMes = hoy().slice(0, 7);
+
+function cambiarMesNom(delta) {
+  const [y, m] = nomMes.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  nomMes = d.getFullYear() + "-" + pad(d.getMonth() + 1);
+  renderNominas();
+}
+
+function textoResultado(s) {
+  s = r2(s);
+  return s > 0 ? "A pagar " + fmtH(s) : s < 0 ? "Debe " + fmtH(-s) : "Al día";
+}
+
+function renderNominas() {
+  document.getElementById("nom-mes-label").textContent = MESES[+nomMes.slice(5,7) - 1] + " " + nomMes.slice(0,4);
+  document.getElementById("nom-cards").innerHTML = EMPLEADOS.map(tarjetaNomina).join("");
+  document.getElementById("nom-historico").innerHTML = EMPLEADOS.map(historicoNomina).join("");
+}
+
+function tarjetaNomina(emp) {
+  const r = cierresMensuales(emp).find(x => x.mes === nomMes);
+  const estado = r && r.enCurso ? `<span class="nom-estado">en curso · faltan ${r.diasPend} días laborables</span>` : "";
+  let h = `<div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}${estado}</div>`;
+  if (!r) return `<div class="nom-card">${h}<div class="nom-fila"><span>No trabajaba este mes</span><span></span></div></div>`;
+
+  const fila = (lbl, val, cls) => `<div class="nom-fila ${cls || ""}"><span>${lbl}</span><span>${val}</span></div>`;
+  const jornadas = Object.entries(r.jornadas).map(([j, n]) => `${n} × ${j}h`).join(" + ");
+  // Si hace su jornada el resto del mes, el resultado sube en las horas pendientes
+  const prevision = s => r.enCurso && r.horasPend
+    ? `<small>Provisional. Si hace su jornada lo que queda de mes (+${fmtH(r.horasPend)}): ${textoResultado(s + r.horasPend)}</small>` : "";
+
+  h += fila(`Días laborables <small>${jornadas}</small>`, fmtH(r.bruto));
+  if (r.diasVac) h += fila(`Vacaciones <small>${r.diasVac} día${r.diasVac > 1 ? "s" : ""}, cuentan como hechas</small>`, "−" + fmtH(r.vac));
+  h += fila("Debía hacer", fmtH(r.debia), "fuerte");
+  h += fila("Horas hechas" + (r.enCurso ? " <small>hasta hoy</small>" : ""), fmtH(r.hechas), "fuerte");
+  h += fila("Exceso del mes", `<span class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</span>`);
+  h += fila("Arrastra del mes anterior", `<span class="${claseSaldo(r.saldoAnterior)}">${saldoCorto(r.saldoAnterior)}</span>`);
+  r.semanasLimite.forEach(s => {
+    h += `<div class="nom-aviso">⚠ Semana ${rangoSemana(s.lunes)}: ${fmtH(s.horas)}, más de ${LIMITE_SEMANA}h (límite habitual de horas complementarias)</div>`;
+  });
+
+  h += `<div class="nom-resultado"><div class="nom-resultado-lbl">Con las horas reales</div>
+    <div class="nom-resultado-val ${claseSaldo(r.saldoReal)}">${textoResultado(r.saldoReal)}</div>
+    ${prevision(r.saldoReal)}</div>`;
+
+  if (r.perdon) {
+    h += `<div class="nom-resultado perdon"><div class="nom-resultado-lbl">Perdonándole ${fmtH(r.perdon)} de deuda</div>
+      <div class="nom-resultado-val ${claseSaldo(r.saldoConPerdon)}">${textoResultado(r.saldoConPerdon)}</div>
+      <small>${fmtH(r.perdon)} más a su favor que con las horas reales.</small>
+      ${prevision(r.saldoConPerdon)}</div>`;
   }
-  guardarSemana(emp, lunes, v, ajusteSemana(emp, lunes).liq);
+
+  if (r.liq) h += fila(r.liq > 0 ? "Pagado en la nómina" : "Descontado en la nómina", fmtH(Math.abs(r.liq)), "fuerte");
+  h += fila("Pasa al mes siguiente", `<span class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</span>`, "fuerte");
+
+  const acc = [];
+  if (r.perdon) acc.push(`<button class="adm-btn" onclick="quitarPerdon('${emp}','${r.mes}')">Quitar perdón</button>`);
+  else if (r.saldoAnterior < 0 || r.saldoReal < 0) acc.push(`<button class="adm-btn" onclick="perdonar('${emp}','${r.mes}')">Perdonar deuda</button>`);
+  if (r.liq) acc.push(`<button class="adm-btn" onclick="quitarLiquidacionMes('${emp}','${r.mes}')">Deshacer ${r.liq > 0 ? "pago" : "descuento"}</button>`);
+  else if (r.saldoConPerdon !== 0) acc.push(`<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">${r.saldoConPerdon > 0 ? "Registrar pago" : "Registrar descuento"}</button>`);
+  if (acc.length) h += `<div class="nom-acciones">${acc.join("")}</div>`;
+
+  return `<div class="nom-card">${h}</div>`;
 }
 
-function liquidar(emp, lunes) {
-  const f = filaSemana(emp, lunes);
-  if (!f || !f.cerrada) return;
-  const saldo = r2(f.saldoPrev + f.variacion);   // saldo al cierre de esa semana, antes de liquidar
-  if (saldo === 0) { alert(NOMBRES[emp] + " ya está al día esa semana."); return; }
-  const resp = prompt(
-    textoSaldo(emp, saldo) + " al cierre de la semana " + rangoSemana(lunes) + ".\n" +
-    "¿Cuántas horas se liquidan (pagadas o descontadas en nómina)?\n" +
-    "Deja " + fmtNum(Math.abs(saldo)) + " para dejarlo al día.",
-    fmtNum(Math.abs(saldo)));
-  if (resp === null) return;
-  const horas = parseHoras(resp);
-  if (horas === null || Number.isNaN(horas) || horas <= 0) { alert("Cantidad no válida"); return; }
-  // Liquidar mueve el saldo hacia 0: si debe horas suma, si se le deben resta
-  const liq = saldo < 0 ? horas : -horas;
-  guardarSemana(emp, lunes, f.revisada ? f.obj : null, r2(liq));
+function historicoNomina(emp) {
+  const ini = SALDO_ARRANQUE[emp] || 0;
+  const filas = cierresMensuales(emp).map(r => `<tr${r.mes === nomMes ? ' class="subtotal"' : ""}>
+    <td>${MESES[+r.mes.slice(5,7) - 1]}${r.enCurso ? " (en curso)" : ""}</td>
+    <td>${fmtH(r.debia)}</td><td>${fmtH(r.hechas)}</td>
+    <td class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</td>
+    <td>${r.perdon ? fmtVar(r.perdon) : ""}</td>
+    <td>${r.liq ? (r.liq > 0 ? "pagado " : "descontado ") + fmtH(Math.abs(r.liq)) : ""}</td>
+    <td class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</td></tr>`).join("");
+  return `<div class="res-card">
+    <div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]} — mes a mes</div>
+    <table class="rtable"><thead><tr><th>Mes</th><th>Debía</th><th>Hechas</th><th>Exceso</th><th>Perdonado</th><th>Nómina</th><th>Pasa al siguiente</th></tr></thead>
+    <tbody><tr class="inicial"><td>Saldo inicial (${diaMes(INICIO_EMP[emp])})</td><td></td><td></td><td></td><td></td><td></td>
+      <td class="${claseSaldo(ini)}">${saldoCorto(ini)}</td></tr>${filas}</tbody></table></div>`;
 }
 
-function quitarLiquidacion(emp, lunes) {
-  const f = filaSemana(emp, lunes);
-  if (!f) return;
-  if (!confirm("¿Quitar la liquidación de " + fmtH(Math.abs(f.liq)) + " de " + NOMBRES[emp] + " (semana " + rangoSemana(lunes) + ")?")) return;
-  guardarSemana(emp, lunes, f.revisada ? f.obj : null, 0);
+function cierreMes(emp, mes) { return cierresMensuales(emp).find(x => x.mes === mes); }
+function nombreMes(mes) { return MESES[+mes.slice(5,7) - 1].toLowerCase(); }
+
+function pedirHoras(texto, defecto) {
+  const resp = prompt(texto, fmtNum(defecto));
+  if (resp === null) return null;
+  const h = parseHoras(resp);
+  if (h === null || Number.isNaN(h) || h <= 0) { alert("Cantidad no válida"); return null; }
+  return r2(h);
 }
 
-async function guardarSemana(emp, lunes, obj, liq) {
-  if (!ajustesSemana[emp]) ajustesSemana[emp] = {};
-  const aj = ajustesSemana[emp];
-  const borrar = obj === null && !liq;
+function perdonar(emp, mes) {
+  const r = cierreMes(emp, mes);
+  const deuda = r.saldoAnterior < 0 ? -r.saldoAnterior : -r.saldoReal;
+  const h = pedirHoras(`${NOMBRES[emp]} arrastra una deuda de ${fmtH(deuda)}.\n¿Cuántas horas le perdonas en ${nombreMes(mes)}?`, deuda);
+  if (h !== null) guardarMes(emp, mes, h, r.liq);
+}
+
+function quitarPerdon(emp, mes) {
+  const r = cierreMes(emp, mes);
+  if (confirm(`¿Quitar el perdón de ${fmtH(r.perdon)} a ${NOMBRES[emp]} en ${nombreMes(mes)}?`)) guardarMes(emp, mes, 0, r.liq);
+}
+
+function liquidarMes(emp, mes) {
+  const r = cierreMes(emp, mes);
+  const s = r.saldoConPerdon;
+  let texto = s > 0
+    ? `${textoResultado(s)} a ${NOMBRES[emp]} en ${nombreMes(mes)}.\n¿Cuántas horas le pagas en la nómina?`
+    : `${NOMBRES[emp]} debe ${fmtH(-s)} en ${nombreMes(mes)}.\n¿Cuántas horas le descuentas en la nómina?`;
+  if (r.enCurso) texto = "OJO: el mes aún no ha terminado; se calcula con las horas registradas hasta hoy.\n\n" + texto;
+  const h = pedirHoras(texto, Math.abs(s));
+  if (h !== null) guardarMes(emp, mes, r.perdon, s > 0 ? h : -h);
+}
+
+function quitarLiquidacionMes(emp, mes) {
+  const r = cierreMes(emp, mes);
+  if (confirm(`¿Deshacer el ${r.liq > 0 ? "pago" : "descuento"} de ${fmtH(Math.abs(r.liq))} a ${NOMBRES[emp]} en ${nombreMes(mes)}?`)) guardarMes(emp, mes, r.perdon, 0);
+}
+
+async function guardarMes(emp, mes, perdon, liq) {
+  const clave = "M" + mes;
+  if (!ajustes[emp]) ajustes[emp] = {};
+  const aj = ajustes[emp];
+  const borrar = !perdon && !liq;
   if (borrar) {
-    delete aj[lunes]; delete aj[lunes + "_obj"]; delete aj[lunes + "_var"];
+    delete aj[clave]; delete aj[clave + "_obj"]; delete aj[clave + "_var"];
   } else {
-    aj[lunes + "_obj"] = codificarHoras(obj === null ? OBJETIVO_SEMANA_NUEVO : obj);
-    aj[lunes + "_var"] = codificarHoras(liq || 0);
-    const f = filaSemana(emp, lunes);
-    aj[lunes] = f && f.saldo !== null ? f.saldo : 0;   // solo informativo en Sheets (allí se redondea)
+    aj[clave + "_obj"] = codificarHoras(perdon || 0);
+    aj[clave + "_var"] = codificarHoras(liq || 0);
+    aj[clave] = cierreMes(emp, mes).saldoFinal;   // solo informativo en Sheets (allí se redondea)
   }
-  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustesSemana));
+  localStorage.setItem("codek_ajustes_semana", JSON.stringify(ajustes));
   refrescarVistas();
 
   setSyncStatus("loading", "Guardando...");
   const body = borrar
-    ? { accion: "borrarAjuste", emp, semana: lunes }
-    : { accion: "guardarAjuste", emp, semana: lunes, saldo: aj[lunes], obj: aj[lunes + "_obj"], varh: aj[lunes + "_var"] };
+    ? { accion: "borrarAjuste", emp, semana: clave }
+    : { accion: "guardarAjuste", emp, semana: clave, saldo: aj[clave], obj: aj[clave + "_obj"], varh: aj[clave + "_var"] };
   try {
     const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body) });
     const json = await res.json();
