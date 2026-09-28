@@ -792,6 +792,8 @@ function cierresMensuales(emp) {
   let saldo = SALDO_ARRANQUE[emp] || 0;
   return mesesEmp(emp).map(mes => {
     const fin = ultimoDiaMes(mes);
+    // Mes en curso: se compara lo que debía HASTA HOY (incluido) con lo que lleva hecho;
+    // los días que quedan se muestran aparte como pendientes.
     const r = { mes, enCurso: fin > hoyStr, saldoAnterior: saldo, jornadas: {}, bruto: 0,
                 diasVac: 0, vac: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [] };
     for (let f = mes + "-01"; f <= fin; f = sumarDias(f, 1)) {
@@ -799,11 +801,13 @@ function cierresMensuales(emp) {
       r.hechas += horasDelDia(emp, f);
       if (!esLaborable(f)) continue;
       const j = jornadaDia(f);
+      if (f > hoyStr) {
+        if (!esDiaVacaciones(emp, f)) { r.diasPend++; r.horasPend += j; }
+        continue;
+      }
       r.bruto += j;
       r.jornadas[j] = (r.jornadas[j] || 0) + 1;
       if (esDiaVacaciones(emp, f)) { r.diasVac++; r.vac += j; }
-      // Pendiente: días futuros, y hoy si aún no ha apuntado nada
-      else if (f > hoyStr || (f === hoyStr && !horasDelDia(emp, f))) { r.diasPend++; r.horasPend += j; }
     }
     // Semanas de este mes (por su jueves) que pasan del límite de horas complementarias
     for (let l = lunesDe(mes + "-01"); l <= fin; l = sumarDias(l, 7)) {
@@ -1413,45 +1417,47 @@ function renderNominas() {
 
 function tarjetaNomina(emp) {
   const r = cierresMensuales(emp).find(x => x.mes === nomMes);
-  const estado = r && r.enCurso ? `<span class="nom-estado">en curso · faltan ${r.diasPend} días laborables</span>` : "";
+  const estado = r && r.enCurso ? `<span class="nom-estado">mes en curso · cuentas a día de hoy</span>` : "";
   let h = `<div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}${estado}</div>`;
   if (!r) return `<div class="nom-card">${h}<div class="nom-fila"><span>No trabajaba este mes</span><span></span></div></div>`;
 
   const fila = (lbl, val, cls) => `<div class="nom-fila ${cls || ""}"><span>${lbl}</span><span>${val}</span></div>`;
   const jornadas = Object.entries(r.jornadas).map(([j, n]) => `${n} × ${j}h`).join(" + ");
-  // Si hace su jornada el resto del mes, el resultado sube en las horas pendientes
-  const prevision = s => r.enCurso && r.horasPend
-    ? `<small>Provisional. Si hace su jornada lo que queda de mes (+${fmtH(r.horasPend)}): ${textoResultado(s + r.horasPend)}</small>` : "";
+  const hasta = r.enCurso ? " hasta hoy" : "";
 
-  h += fila(`Días laborables <small>${jornadas}</small>`, fmtH(r.bruto));
+  h += fila(`Días laborables${hasta} <small>${jornadas}</small>`, fmtH(r.bruto));
   if (r.diasVac) h += fila(`Vacaciones <small>${r.diasVac} día${r.diasVac > 1 ? "s" : ""}, cuentan como hechas</small>`, "−" + fmtH(r.vac));
-  h += fila("Debía hacer", fmtH(r.debia), "fuerte");
-  h += fila("Horas hechas" + (r.enCurso ? " <small>hasta hoy</small>" : ""), fmtH(r.hechas), "fuerte");
-  h += fila("Exceso del mes", `<span class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</span>`);
+  h += fila(`Debía hacer${hasta}`, fmtH(r.debia), "fuerte");
+  h += fila(`Horas hechas${hasta}`, fmtH(r.hechas), "fuerte");
+  h += fila(r.exceso >= 0 ? "Horas de más" : "Horas de menos", `<span class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</span>`);
   h += fila("Arrastra del mes anterior", `<span class="${claseSaldo(r.saldoAnterior)}">${saldoCorto(r.saldoAnterior)}</span>`);
   r.semanasLimite.forEach(s => {
     h += `<div class="nom-aviso">⚠ Semana ${rangoSemana(s.lunes)}: ${fmtH(s.horas)}, más de ${LIMITE_SEMANA}h (límite habitual de horas complementarias)</div>`;
   });
 
   h += `<div class="nom-resultado"><div class="nom-resultado-lbl">Con las horas reales</div>
-    <div class="nom-resultado-val ${claseSaldo(r.saldoReal)}">${textoResultado(r.saldoReal)}</div>
-    ${prevision(r.saldoReal)}</div>`;
+    <div class="nom-resultado-val ${claseSaldo(r.saldoReal)}">${textoResultado(r.saldoReal)}</div></div>`;
 
   if (r.perdon) {
     h += `<div class="nom-resultado perdon"><div class="nom-resultado-lbl">Perdonándole ${fmtH(r.perdon)} de deuda</div>
       <div class="nom-resultado-val ${claseSaldo(r.saldoConPerdon)}">${textoResultado(r.saldoConPerdon)}</div>
-      <small>${fmtH(r.perdon)} más a su favor que con las horas reales.</small>
-      ${prevision(r.saldoConPerdon)}</div>`;
+      <small>${fmtH(r.perdon)} más a su favor que con las horas reales.</small></div>`;
+  }
+
+  if (r.enCurso && r.diasPend) {
+    h += `<div class="nom-aviso" style="color:var(--blanco-dim)">Quedan ${r.diasPend} día${r.diasPend > 1 ? "s" : ""} laborable${r.diasPend > 1 ? "s" : ""} (${fmtH(r.horasPend)} de jornada).
+      Si hace justo eso, el resultado no cambia; cada hora de más lo sube y cada hora de menos lo baja.</div>`;
   }
 
   if (r.liq) h += fila(r.liq > 0 ? "Pagado en la nómina" : "Descontado en la nómina", fmtH(Math.abs(r.liq)), "fuerte");
-  h += fila("Pasa al mes siguiente", `<span class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</span>`, "fuerte");
+  if (!r.enCurso) h += fila("Pasa al mes siguiente", `<span class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</span>`, "fuerte");
 
+  // El pago o descuento se registra al cerrar el mes (a partir del último día)
   const acc = [];
   if (r.perdon) acc.push(`<button class="adm-btn" onclick="quitarPerdon('${emp}','${r.mes}')">Quitar perdón</button>`);
   else if (r.saldoAnterior < 0 || r.saldoReal < 0) acc.push(`<button class="adm-btn" onclick="perdonar('${emp}','${r.mes}')">Perdonar deuda</button>`);
   if (r.liq) acc.push(`<button class="adm-btn" onclick="quitarLiquidacionMes('${emp}','${r.mes}')">Deshacer ${r.liq > 0 ? "pago" : "descuento"}</button>`);
-  else if (r.saldoConPerdon !== 0) acc.push(`<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">${r.saldoConPerdon > 0 ? "Registrar pago" : "Registrar descuento"}</button>`);
+  else if (!r.enCurso && r.saldoConPerdon !== 0) acc.push(`<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">${r.saldoConPerdon > 0 ? "Registrar pago" : "Registrar descuento"}</button>`);
   if (acc.length) h += `<div class="nom-acciones">${acc.join("")}</div>`;
 
   return `<div class="nom-card">${h}</div>`;
