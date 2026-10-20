@@ -483,6 +483,18 @@ const FECHA_CAMBIO_JORNADA = "2026-09-01";
 const JORNADA_ANTES = 6, JORNADA_AHORA = 4;
 // Horas complementarias a tiempo parcial: por encima de 20h + 30% = 26h/semana se avisa
 const LIMITE_SEMANA = 26;
+// Festivos: no son días laborables para nadie (no cuentan en lo que debían hacer).
+// Solo están los nacionales de 2026; añadir aquí los de la Comunidad de Madrid y los locales.
+const FESTIVOS = {
+  "2026-01-01": "Año Nuevo",
+  "2026-01-06": "Reyes",
+  "2026-04-03": "Viernes Santo",
+  "2026-05-01": "Día del Trabajo",
+  "2026-08-15": "Asunción",
+  "2026-10-12": "Fiesta Nacional",
+  "2026-12-08": "Inmaculada",
+  "2026-12-25": "Navidad"
+};
 
 // ── SALDO DE HORAS ──
 // Convención interna: saldo > 0 = horas a favor del trabajador (se las debes tú);
@@ -709,9 +721,13 @@ function horasTotal(emp) {
 // Los ajustes del mes (perdón de deuda y horas liquidadas en nómina) cuentan el último día del mes.
 // La vista semanal y el cierre mensual salen de este mismo cálculo, así que siempre cuadran.
 function jornadaDia(fecha) { return fecha >= FECHA_CAMBIO_JORNADA ? JORNADA_AHORA : JORNADA_ANTES; }
+function esFestivoEntreSemana(fecha) {
+  const d = new Date(fecha + "T12:00:00").getDay();
+  return !!FESTIVOS[fecha] && d >= 1 && d <= 5;
+}
 function esLaborable(fecha) {
   const d = new Date(fecha + "T12:00:00").getDay();
-  return d >= 1 && d <= 5;
+  return d >= 1 && d <= 5 && !FESTIVOS[fecha];
 }
 function objetivoDia(emp, fecha) {
   if (fecha < INICIO_EMP[emp] || !esLaborable(fecha) || esDiaVacaciones(emp, fecha)) return 0;
@@ -795,10 +811,13 @@ function cierresMensuales(emp) {
     // Mes en curso: se compara lo que debía HASTA HOY (incluido) con lo que lleva hecho;
     // los días que quedan se muestran aparte como pendientes.
     const r = { mes, enCurso: fin > hoyStr, saldoAnterior: saldo, jornadas: {}, bruto: 0,
-                diasVac: 0, vac: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [] };
+                diasVac: 0, vac: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [], festivos: [] };
     for (let f = mes + "-01"; f <= fin; f = sumarDias(f, 1)) {
       if (f < INICIO_EMP[emp]) continue;   // lo anterior al inicio no cuenta (ya está en el saldo inicial)
-      r.hechas += horasDelDia(emp, f);
+      // Horas fichadas por adelantado (días que aún no han llegado) se apartan, igual que lo que debía
+      if (f > hoyStr) r.horasFuturas = (r.horasFuturas || 0) + horasDelDia(emp, f);
+      else r.hechas += horasDelDia(emp, f);
+      if (esFestivoEntreSemana(f)) r.festivos.push(f);
       if (!esLaborable(f)) continue;
       const j = jornadaDia(f);
       if (f > hoyStr) {
@@ -1291,10 +1310,11 @@ function renderCalendario() {
       let cls = "cal-day";
       if (!esMes) cls += " otro-mes";
       if (fechaStr === hoyStr) cls += " hoy";
-      if (esFS) cls += " fin-semana";
+      if (esFS || FESTIVOS[fechaStr]) cls += " fin-semana";
       if (EMPLEADOS.some(e => esDiaVacaciones(e, fechaStr))) cls += " vacaciones";
 
-      const mesLbl = !esMes ? `<span style="font-size:8px;color:#555;margin-left:2px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "";
+      const mesLbl = (!esMes ? `<span style="font-size:8px;color:#555;margin-left:2px">${MESES[fecha.getMonth()].substring(0,3)}</span>` : "")
+        + (FESTIVOS[fechaStr] ? `<span class="cal-vac-label" style="font-size:9px;margin-left:6px">festivo</span>` : "");
 
       const rows = EMPLEADOS.map(emp => {
         const dot = `<span style="background:${EMP_COLORES[emp]}" class="cal-emp-dot"></span>`;
@@ -1426,6 +1446,7 @@ function tarjetaNomina(emp) {
   const hasta = r.enCurso ? " hasta hoy" : "";
 
   h += fila(`Días laborables${hasta} <small>${jornadas}</small>`, fmtH(r.bruto));
+  if (r.festivos.length) h += fila(`Festivos <small>${r.festivos.map(f => diaMes(f) + " " + FESTIVOS[f]).join(", ")} — no cuentan</small>`, "");
   if (r.diasVac) h += fila(`Vacaciones <small>${r.diasVac} día${r.diasVac > 1 ? "s" : ""}, cuentan como hechas</small>`, "−" + fmtH(r.vac));
   h += fila(`Debía hacer${hasta}`, fmtH(r.debia), "fuerte");
   h += fila(`Horas hechas${hasta}`, fmtH(r.hechas), "fuerte");
@@ -1446,7 +1467,8 @@ function tarjetaNomina(emp) {
 
   if (r.enCurso && r.diasPend) {
     h += `<div class="nom-aviso" style="color:var(--blanco-dim)">Quedan ${r.diasPend} día${r.diasPend > 1 ? "s" : ""} laborable${r.diasPend > 1 ? "s" : ""} (${fmtH(r.horasPend)} de jornada).
-      Si hace justo eso, el resultado no cambia; cada hora de más lo sube y cada hora de menos lo baja.</div>`;
+      Si hace justo eso, el resultado no cambia; cada hora de más lo sube y cada hora de menos lo baja.
+      ${r.horasFuturas ? `<br>Ya tiene fichadas por adelantado ${fmtH(r.horasFuturas)} de esos días: contarán cuando lleguen.` : ""}</div>`;
   }
 
   if (r.liq) h += fila(r.liq > 0 ? "Pagado en la nómina" : "Descontado en la nómina", fmtH(Math.abs(r.liq)), "fuerte");
