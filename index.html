@@ -266,7 +266,10 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
 
     <div class="sched-header">
       <span class="section-label" id="sched-titulo">Franjas horarias — Diego</span>
-      <button class="btn-vacaciones" id="btn-vacaciones" onclick="toggleVacaciones()">☀ Marcar como vacaciones</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-vacaciones tab-admin hidden" id="btn-permiso" onclick="togglePermiso()" title="Solo admin: día pagado sin trabajar">✚ Permiso retribuido</button>
+        <button class="btn-vacaciones" id="btn-vacaciones" onclick="toggleVacaciones()">☀ Marcar como vacaciones</button>
+      </div>
     </div>
 
     <!-- LEYENDA -->
@@ -518,6 +521,7 @@ let infEmp = "todos";
 let infPeriodo = "semana";
 
 let vacaciones = { Diego: {}, Jesus: {}, Alvarez: {} };
+let permisos = { Diego: {}, Jesus: {}, Alvarez: {} };
 const VAC_PREVIAS = { Diego: 1, Jesus: 8, Alvarez: 0 };
 
 // SHA-256 del PIN de administrador (así el PIN no aparece escrito en el código)
@@ -540,6 +544,9 @@ async function init() {
   if (vacGuardadas) { try { vacaciones = JSON.parse(vacGuardadas); } catch(e) {} }
   const adjGuardados = localStorage.getItem("codek_ajustes_semana");
   if (adjGuardados) { try { ajustes = JSON.parse(adjGuardados); } catch(e) {} }
+  EMPLEADOS.forEach(emp => Object.keys(ajustes[emp] || {}).forEach(k => {
+    if (/^P\d{4}-\d\d-\d\d$/.test(k)) permisos[emp][k.slice(1)] = true;
+  }));
   let backup = {};
   try { backup = JSON.parse(localStorage.getItem("codek_tareas_backup") || "{}"); } catch(e) {}
   try {
@@ -645,13 +652,33 @@ function toggleVacaciones() {
   dispararAutoguardado();
 }
 
+// ── PERMISO RETRIBUIDO ── (lo marca solo el admin; clave "P" + fecha en Sheets)
+// Se paga aunque no se trabaje: como las vacaciones, ese día no se le exige jornada.
+function esDiaPermiso(emp, fecha) {
+  return !!(permisos[emp] && permisos[emp][fecha]);
+}
+
+function togglePermiso() {
+  if (!modoAdmin) return;
+  const emp = empleadoActual, fecha = fechaActual;
+  const marcar = !esDiaPermiso(emp, fecha);
+  if (!permisos[emp]) permisos[emp] = {};
+  if (marcar) permisos[emp][fecha] = true;
+  else delete permisos[emp][fecha];
+  renderGrid();
+  renderStats();
+  subirMarcaDia("P", emp, fecha, marcar);
+}
+
 // Las vacaciones se guardan en Sheets (clave "V" + fecha) para que todos los dispositivos
 // vean lo mismo. Sheets manda; lo marcado solo en este dispositivo se sube una única vez.
 function sincronizarVacaciones() {
   const enSheets = { Diego: {}, Jesus: {}, Alvarez: {} };
+  permisos = { Diego: {}, Jesus: {}, Alvarez: {} };
   EMPLEADOS.forEach(emp => {
     Object.keys(ajustes[emp] || {}).forEach(k => {
       if (/^V\d{4}-\d\d-\d\d$/.test(k)) enSheets[emp][k.slice(1)] = true;
+      if (/^P\d{4}-\d\d-\d\d$/.test(k)) permisos[emp][k.slice(1)] = true;
     });
   });
   if (!localStorage.getItem("codek_vac_subidas")) {
@@ -669,8 +696,11 @@ function sincronizarVacaciones() {
   localStorage.setItem("codek_vacaciones", JSON.stringify(vacaciones));
 }
 
-async function subirVacacion(emp, fecha, marcar) {
-  const clave = "V" + fecha;
+function subirVacacion(emp, fecha, marcar) { return subirMarcaDia("V", emp, fecha, marcar); }
+
+// Guarda/borra en Sheets la marca de un día: "V" vacaciones, "P" permiso retribuido
+async function subirMarcaDia(prefijo, emp, fecha, marcar) {
+  const clave = prefijo + fecha;
   if (!ajustes[emp]) ajustes[emp] = {};
   if (marcar) { ajustes[emp][clave] = 1; ajustes[emp][clave + "_obj"] = 0; ajustes[emp][clave + "_var"] = 0; }
   else { delete ajustes[emp][clave]; delete ajustes[emp][clave + "_obj"]; delete ajustes[emp][clave + "_var"]; }
@@ -684,11 +714,15 @@ async function subirVacacion(emp, fecha, marcar) {
     if (json && json.ok === false) throw new Error(json.error);
   } catch(e) {
     setSyncStatus("err", "Error al guardar");
-    alert("No se pudo guardar la vacación en Sheets. Vuelve a marcarla cuando haya conexión.");
+    alert("No se pudo guardar en Sheets. Vuelve a marcar el día cuando haya conexión.");
   }
 }
 
 function actualizarBannerVacaciones() {
+  const esPerm = esDiaPermiso(empleadoActual, fechaActual);
+  const bp = document.getElementById("btn-permiso");
+  bp.classList.toggle("activo", esPerm);
+  bp.textContent = esPerm ? "✚ Permiso retribuido ✓" : "✚ Permiso retribuido";
   const esVac = esDiaVacaciones(empleadoActual, fechaActual);
   document.getElementById("vacaciones-banner").classList.toggle("hidden", !esVac);
   document.getElementById("btn-vacaciones").classList.toggle("activo", esVac);
@@ -730,7 +764,7 @@ function esLaborable(fecha) {
   return d >= 1 && d <= 5 && !FESTIVOS[fecha];
 }
 function objetivoDia(emp, fecha) {
-  if (fecha < INICIO_EMP[emp] || !esLaborable(fecha) || esDiaVacaciones(emp, fecha)) return 0;
+  if (fecha < INICIO_EMP[emp] || !esLaborable(fecha) || esDiaVacaciones(emp, fecha) || esDiaPermiso(emp, fecha)) return 0;
   return jornadaDia(fecha);
 }
 function ultimoDiaMes(mes) {
@@ -769,6 +803,11 @@ function objetivoSemana(emp, lunes) {
   for (let i = 0; i < 5; i++) t += objetivoDia(emp, sumarDias(lunes, i));
   return t;
 }
+function diasPermSemana(emp, lunes) {
+  let n = 0;
+  for (let i = 0; i < 5; i++) if (esDiaPermiso(emp, sumarDias(lunes, i))) n++;
+  return n;
+}
 function diasVacSemana(emp, lunes) {
   let n = 0;
   for (let i = 0; i < 5; i++) if (esDiaVacaciones(emp, sumarDias(lunes, i))) n++;
@@ -788,7 +827,7 @@ function semanasSaldo(emp) {
     const saldoPrev = saldo;
     if (cerrada) saldo = r2(saldo + variacion + ajuste);
     filas.push({ lunes: l, cerrada, hechas, obj, variacion, ajuste, saldoPrev,
-                 saldo: cerrada ? saldo : null, vac: diasVacSemana(emp, l) });
+                 saldo: cerrada ? saldo : null, vac: diasVacSemana(emp, l), perm: diasPermSemana(emp, l) });
   }
   return filas;
 }
@@ -811,7 +850,7 @@ function cierresMensuales(emp) {
     // Mes en curso: se compara lo que debía HASTA HOY (incluido) con lo que lleva hecho;
     // los días que quedan se muestran aparte como pendientes.
     const r = { mes, enCurso: fin > hoyStr, saldoAnterior: saldo, jornadas: {}, bruto: 0,
-                diasVac: 0, vac: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [], festivos: [] };
+                diasVac: 0, vac: 0, diasPerm: 0, perm: 0, hechas: 0, diasPend: 0, horasPend: 0, semanasLimite: [], festivos: [] };
     for (let f = mes + "-01"; f <= fin; f = sumarDias(f, 1)) {
       if (f < INICIO_EMP[emp]) continue;   // lo anterior al inicio no cuenta (ya está en el saldo inicial)
       // Horas fichadas por adelantado (días que aún no han llegado) se apartan, igual que lo que debía
@@ -821,12 +860,13 @@ function cierresMensuales(emp) {
       if (!esLaborable(f)) continue;
       const j = jornadaDia(f);
       if (f > hoyStr) {
-        if (!esDiaVacaciones(emp, f)) { r.diasPend++; r.horasPend += j; }
+        if (!esDiaVacaciones(emp, f) && !esDiaPermiso(emp, f)) { r.diasPend++; r.horasPend += j; }
         continue;
       }
       r.bruto += j;
       r.jornadas[j] = (r.jornadas[j] || 0) + 1;
       if (esDiaVacaciones(emp, f)) { r.diasVac++; r.vac += j; }
+      else if (esDiaPermiso(emp, f)) { r.diasPerm++; r.perm += j; }
     }
     // Semanas de este mes (por su jueves) que pasan del límite de horas complementarias
     for (let l = lunesDe(mes + "-01"); l <= fin; l = sumarDias(l, 7)) {
@@ -835,7 +875,7 @@ function cierresMensuales(emp) {
       if (h > LIMITE_SEMANA) r.semanasLimite.push({ lunes: l, horas: h });
     }
     r.hechas = r2(r.hechas);
-    r.debia = r2(r.bruto - r.vac);
+    r.debia = r2(r.bruto - r.vac - r.perm);
     r.exceso = r2(r.hechas - r.debia);
     r.saldoReal = r2(saldo + r.exceso);
     const a = ajusteMes(emp, mes);
@@ -1156,7 +1196,8 @@ function tablaResumen(emp) {
       tot.ajuste = r2(tot.ajuste + f.ajuste); tot.saldo = f.saldo; tot.semanas++;
     }
 
-    const vac = f.vac ? `<span class="tag tag-vac" title="Días de vacaciones (L-V)">☀ ${f.vac}d vac</span>` : "";
+    const vac = (f.vac ? `<span class="tag tag-vac" title="Días de vacaciones (L-V)">☀ ${f.vac}d vac</span>` : "")
+      + (f.perm ? `<span class="tag tag-vac" title="Permiso retribuido (L-V)">✚ ${f.perm}d permiso</span>` : "");
     const lim = (f.lunes >= FECHA_CAMBIO_JORNADA && f.hechas > LIMITE_SEMANA)
       ? `<span class="tag tag-rev" title="Más de ${LIMITE_SEMANA}h: por encima del límite habitual de horas complementarias">⚠ +${LIMITE_SEMANA}h</span>` : "";
 
@@ -1320,6 +1361,8 @@ function renderCalendario() {
         const dot = `<span style="background:${EMP_COLORES[emp]}" class="cal-emp-dot"></span>`;
         if (esDiaVacaciones(emp, fechaStr))
           return `<div class="cal-emp-row">${dot}<span class="cal-vac-label">☀ vac</span></div>`;
+        if (esDiaPermiso(emp, fechaStr) && !horasDelDia(emp, fechaStr))
+          return `<div class="cal-emp-row">${dot}<span class="cal-vac-label">✚ permiso</span></div>`;
         const h = horasDelDia(emp, fechaStr);
         const jor = jornadaDia(fechaStr);
         const c = "cal-emp-hrs "+(h===0?"vacio":h>=jor?"ok":h>=jor*.5?"warn":"bad");
@@ -1447,6 +1490,7 @@ function tarjetaNomina(emp) {
 
   h += fila(`Días laborables${hasta} <small>${jornadas}</small>`, fmtH(r.bruto));
   if (r.festivos.length) h += fila(`Festivos <small>${r.festivos.map(f => diaMes(f) + " " + FESTIVOS[f]).join(", ")} — no cuentan</small>`, "");
+  if (r.diasPerm) h += fila(`Permiso retribuido <small>${r.diasPerm} día${r.diasPerm > 1 ? "s" : ""}, cuentan como hechos</small>`, "−" + fmtH(r.perm));
   if (r.diasVac) h += fila(`Vacaciones <small>${r.diasVac} día${r.diasVac > 1 ? "s" : ""}, cuentan como hechas</small>`, "−" + fmtH(r.vac));
   h += fila(`Debía hacer${hasta}`, fmtH(r.debia), "fuerte");
   h += fila(`Horas hechas${hasta}`, fmtH(r.hechas), "fuerte");
