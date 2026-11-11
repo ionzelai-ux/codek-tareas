@@ -306,13 +306,10 @@ td.warn { color: var(--amarillo) !important; font-family: "Space Mono", monospac
       <span class="cal-mes-label" id="nom-mes-label"></span>
       <button class="date-nav-btn" onclick="cambiarMesNom(1)">›</button>
     </div>
-    <div class="res-nota">
-      Contrato de 20h/semana desde el 1 sep → cada día laborable (L-V) cuenta 4h; hasta el 31 ago eran 30h → 6h.
-      Los días de vacaciones cuentan como hechos con la jornada de ese día. El exceso del mes se suma a lo que
-      arrastraba del mes anterior: si sale a su favor se le paga, si sale en contra lo debe.
-    </div>
-    <div class="nom-grid" id="nom-cards"></div>
-    <div id="nom-historico"></div>
+    <div id="nom-encurso"></div>
+    <div class="res-card"><table class="rtable nom-tabla" id="nom-tabla"></table></div>
+    <div id="nom-detalle"></div>
+    <details class="res-card nom-hist"><summary>Histórico mes a mes</summary><div id="nom-historico"></div></details>
   </div>
 
   <!-- TAB INFORME -->
@@ -426,26 +423,27 @@ table.rtable tr.en-curso td { color: var(--gris-texto); }
 .cs-sep { border-top: 1px solid #222; margin: 3px 0; }
 
 /* ── NÓMINAS ── */
-.nom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 26px; align-items: start; }
-.nom-card { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; overflow: hidden; }
-.nom-card .res-card-head { flex-wrap: wrap; }
-.nom-estado { margin-left: auto; font-size: 9px; letter-spacing: 0.06em; color: var(--amarillo); text-transform: none; }
-.nom-fila { display: flex; justify-content: space-between; gap: 10px; padding: 7px 16px; font-size: 12px; color: var(--blanco-dim); border-bottom: 1px solid rgba(42,42,42,0.5); }
-.nom-fila span:last-child { font-family: "Space Mono", monospace; color: var(--blanco); white-space: nowrap; }
-.nom-fila small { color: var(--gris-texto); font-size: 10px; }
-.nom-fila.fuerte { background: rgba(0,0,0,0.2); color: var(--blanco); font-weight: 600; }
-.nom-resultado { padding: 12px 16px; border-bottom: 1px solid var(--gris-borde); }
-.nom-resultado-lbl { font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gris-texto); margin-bottom: 4px; }
-.nom-resultado-val { font-family: "Space Mono", monospace; font-size: 20px; font-weight: 700; }
-.nom-resultado.perdon { background: rgba(76,175,80,0.07); }
-.nom-resultado small { display: block; font-size: 11px; color: var(--gris-texto); margin-top: 4px; font-family: "Inter", sans-serif; font-weight: 400; }
-.nom-acciones { padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
-.nom-acciones .adm-btn { margin-left: 0; padding: 5px 10px; }
-.nom-aviso { padding: 8px 16px; font-size: 11px; color: var(--amarillo); border-bottom: 1px solid rgba(42,42,42,0.5); }
+.nom-tabla td { vertical-align: middle; }
+.nom-tabla td.nom-nombre { font-family: "Inter", sans-serif; font-size: 13px; color: var(--blanco); font-weight: 600; cursor: pointer; }
+.nom-tabla td.nom-total { font-size: 14px; font-weight: 700; }
+.nom-tabla tr.sel td { background: rgba(151,39,46,0.08); }
+.nom-tabla small { display: block; font-size: 10px; color: var(--gris-texto); }
+.nom-tabla .adm-btn { margin: 2px 0 2px 4px; padding: 4px 9px; }
+.nom-encurso { background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.35); color: var(--amarillo); border-radius: 4px; padding: 10px 16px; font-size: 12px; margin-bottom: 14px; }
+.nom-det { background: var(--gris-medio); border: 1px solid var(--gris-borde); border-radius: 4px; padding: 18px 22px; margin-bottom: 22px; font-size: 13px; line-height: 1.6; color: var(--blanco-dim); }
+.nom-det h3 { font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blanco); margin: 0 0 10px; display: flex; align-items: center; gap: 10px; }
+.nom-det h4 { font-size: 12px; color: var(--blanco); margin: 16px 0 6px; }
+.nom-det .regla { color: var(--gris-texto); font-size: 12px; }
+.nom-det ul { margin: 0 0 0 18px; }
+.nom-det table.rtable { margin: 6px 0; }
+.nom-det .total { font-family: "Space Mono", monospace; font-size: 18px; font-weight: 700; margin-top: 14px; }
+.nom-det .aviso { color: var(--amarillo); font-size: 12px; margin-top: 8px; }
+.nom-det .acciones { margin-top: 14px; display: flex; gap: 6px; flex-wrap: wrap; }
+.nom-det .acciones .adm-btn { margin: 0; padding: 5px 10px; }
+.nom-hist summary { cursor: pointer; padding: 12px 18px; font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gris-texto); }
 
 @media (max-width: 800px) {
   .saldo-tiles { grid-template-columns: 1fr; }
-  .nom-grid { grid-template-columns: 1fr; }
   .res-card { overflow-x: auto; }
 }
 </style>
@@ -1458,7 +1456,13 @@ async function toggleAdmin() {
 }
 
 // ── NÓMINAS (solo admin) ─────────────────────────────────────────
-let nomMes = hoy().slice(0, 7);
+// Se abre en el último mes terminado, que es el que toca pagar
+function ultimoMesCerrado() {
+  const h = hoy(), mes = h.slice(0, 7);
+  return ultimoDiaMes(mes) === h ? mes : sumarDias(mes + "-01", -1).slice(0, 7);
+}
+let nomMes = ultimoMesCerrado();
+let nomDetalle = null;   // trabajador cuyo detalle está desplegado
 
 function cambiarMesNom(delta) {
   const [y, m] = nomMes.split("-").map(Number);
@@ -1469,79 +1473,211 @@ function cambiarMesNom(delta) {
 
 function textoResultado(s) {
   s = r2(s);
-  return s > 0 ? "A pagar " + fmtH(s) : s < 0 ? "Debe " + fmtH(-s) : "Al día";
+  return s > 0 ? "A pagar " + fmtH(s) : s < 0 ? "Te debe " + fmtH(-s) : "Al día";
+}
+function nombreMesCap(mes) { return MESES[+mes.slice(5,7) - 1]; }
+
+function verDetalleNom(emp) {
+  nomDetalle = nomDetalle === emp ? null : emp;
+  renderNominas();
+  if (nomDetalle) document.getElementById("nom-detalle").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderNominas() {
-  document.getElementById("nom-mes-label").textContent = MESES[+nomMes.slice(5,7) - 1] + " " + nomMes.slice(0,4);
-  document.getElementById("nom-cards").innerHTML = EMPLEADOS.map(tarjetaNomina).join("");
+  document.getElementById("nom-mes-label").textContent = nombreMesCap(nomMes) + " " + nomMes.slice(0,4);
+  const enCurso = ultimoDiaMes(nomMes) > hoy();
+  document.getElementById("nom-encurso").innerHTML = enCurso
+    ? `<div class="nom-encurso">${nombreMesCap(nomMes)} aún no ha terminado: las cuentas van hasta hoy y no son para pagar.</div>` : "";
+
+  const cab = enCurso
+    ? ["", "Tocaban hasta hoy", "Hizo hasta hoy", "Este mes", "De meses anteriores", "Provisional", ""]
+    : ["", "Tocaban", "Hizo", "Este mes", "De meses anteriores", "Total", ""];
+  document.getElementById("nom-tabla").innerHTML =
+    `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${EMPLEADOS.map(filaNomina).join("")}</tbody>`;
+
+  document.getElementById("nom-detalle").innerHTML = nomDetalle ? detalleNomina(nomDetalle).html : "";
   document.getElementById("nom-historico").innerHTML = EMPLEADOS.map(historicoNomina).join("");
 }
 
-function tarjetaNomina(emp) {
-  const r = cierresMensuales(emp).find(x => x.mes === nomMes);
-  const estado = r && r.enCurso ? `<span class="nom-estado">mes en curso · cuentas a día de hoy</span>` : "";
-  let h = `<div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}${estado}</div>`;
-  if (!r) return `<div class="nom-card">${h}<div class="nom-fila"><span>No trabajaba este mes</span><span></span></div></div>`;
+function filaNomina(emp) {
+  const r = cierreMes(emp, nomMes);
+  const nombre = `<td class="nom-nombre" onclick="verDetalleNom('${emp}')"><span class="cal-emp-dot" style="display:inline-block;background:${EMP_COLORES[emp]};margin-right:8px"></span>${NOMBRES[emp]}</td>`;
+  if (!r) return `<tr>${nombre}<td colspan="6" style="text-align:left">No trabajaba este mes</td></tr>`;
 
-  const fila = (lbl, val, cls) => `<div class="nom-fila ${cls || ""}"><span>${lbl}</span><span>${val}</span></div>`;
-  const jornadas = Object.entries(r.jornadas).map(([j, n]) => `${n} × ${j}h`).join(" + ");
-  const hasta = r.enCurso ? " hasta hoy" : "";
+  const total = r.saldoConPerdon;
+  const antes = (r.saldoAnterior ? fmtVar(r.saldoAnterior) : "—")
+    + (r.perdon ? `<small>+${fmtH(r.perdon)} de deuda perdonada</small>` : "");
 
-  h += fila(`Días laborables${hasta} <small>${jornadas}</small>`, fmtH(r.bruto));
-  if (r.festivos.length) h += fila(`Festivos <small>${r.festivos.map(f => diaMes(f) + " " + FESTIVOS[f]).join(", ")} — no cuentan</small>`, "");
-  if (r.diasPerm) h += fila(`Permiso retribuido <small>${r.diasPerm} día${r.diasPerm > 1 ? "s" : ""}, cuentan como hechos</small>`, "−" + fmtH(r.perm));
-  if (r.diasVac) h += fila(`Vacaciones <small>${r.diasVac} día${r.diasVac > 1 ? "s" : ""}, cuentan como hechas</small>`, "−" + fmtH(r.vac));
-  h += fila(`Debía hacer${hasta}`, fmtH(r.debia), "fuerte");
-  h += fila(`Horas hechas${hasta}`, fmtH(r.hechas), "fuerte");
-  h += fila(r.exceso >= 0 ? "Horas de más" : "Horas de menos", `<span class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</span>`);
-  h += fila("Arrastra del mes anterior", `<span class="${claseSaldo(r.saldoAnterior)}">${saldoCorto(r.saldoAnterior)}</span>`);
-  r.semanasLimite.forEach(s => {
-    h += `<div class="nom-aviso">⚠ Semana ${rangoSemana(s.lunes)}: ${fmtH(s.horas)}, más de ${LIMITE_SEMANA}h (límite habitual de horas complementarias)</div>`;
+  let accion = "";
+  if (r.liq) {
+    accion = `<span class="ok">${r.liq > 0 ? "Pagado" : "Descontado"} ${fmtH(Math.abs(r.liq))} ✓</span>`
+      + (r.saldoFinal ? `<small>Queda: ${saldoCorto(r.saldoFinal)}</small>` : "");
+  } else if (!r.enCurso && total > 0) {
+    accion = `<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">Marcar pagado</button>`;
+  } else if (!r.enCurso && total < 0) {
+    accion = `<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">Descontar</button>`
+      + (r.perdon ? "" : `<button class="adm-btn" onclick="perdonar('${emp}','${r.mes}')">Perdonar</button>`);
+  }
+  accion += `<button class="adm-btn" onclick="verDetalleNom('${emp}')">${nomDetalle === emp ? "Ocultar" : "Ver detalle"}</button>`;
+
+  return `<tr${nomDetalle === emp ? ' class="sel"' : ""}>${nombre}
+    <td>${fmtH(r.debia)}</td><td>${fmtH(r.hechas)}</td>
+    <td class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</td>
+    <td>${antes}</td>
+    <td class="nom-total ${claseSaldo(total)}">${textoResultado(total)}</td>
+    <td>${accion}</td></tr>`;
+}
+
+// Tramos semanales del mes (cortados al mes): hizo / tocaban / notas
+function semanasDelMes(emp, mes) {
+  const hoyStr = hoy(), fin = ultimoDiaMes(mes), out = [];
+  for (let desde = mes + "-01"; desde <= fin; ) {
+    const domingo = sumarDias(lunesDe(desde), 6);
+    const hasta = domingo < fin ? domingo : fin;
+    const s = { desde, hasta, hizo: 0, tocaban: 0, notas: [], cuenta: false };
+    let vac = 0, perm = 0;
+    for (let f = desde; f <= hasta; f = sumarDias(f, 1)) {
+      if (f < INICIO_EMP[emp] || f > hoyStr) continue;
+      s.cuenta = true;
+      s.hizo += horasDelDia(emp, f);
+      s.tocaban += objetivoDia(emp, f);
+      if (esFestivoEntreSemana(f)) s.notas.push(diaMes(f) + " festivo");
+      if (esLaborable(f) && esDiaVacaciones(emp, f)) vac++;
+      if (esLaborable(f) && esDiaPermiso(emp, f)) perm++;
+    }
+    if (vac) s.notas.push(vac + (vac > 1 ? " días" : " día") + " de vacaciones");
+    if (perm) s.notas.push(perm + (perm > 1 ? " días" : " día") + " de permiso retribuido");
+    if (s.cuenta) out.push(s);
+    desde = sumarDias(hasta, 1);
+  }
+  return out;
+}
+function rangoFechas(a, b) {
+  if (a === b) return diaMes(a);
+  return a.slice(5, 7) === b.slice(5, 7) ? +a.slice(8, 10) + "–" + diaMes(b) : diaMes(a) + " – " + diaMes(b);
+}
+
+// Meses anteriores aún sin liquidar (desde el último pago o descuento)
+function pendienteDeAntes(emp, mes) {
+  const previos = cierresMensuales(emp).filter(r => r.mes < mes);
+  let i = previos.length - 1;
+  while (i >= 0 && !previos[i].liq) i--;
+  return {
+    inicial: i < 0 ? (SALDO_ARRANQUE[emp] || 0) : previos[i].saldoFinal,
+    desde: i < 0 ? "al empezar (" + diaMes(INICIO_EMP[emp]) + ")" : "después de la nómina de " + nombreMes(previos[i].mes),
+    meses: previos.slice(i + 1)
+  };
+}
+
+// Resumen para explicárselo al trabajador: HTML para la pantalla y texto para copiar
+function detalleNomina(emp) {
+  const r = cierreMes(emp, nomMes);
+  if (!r) return { html: "", texto: "" };
+  const t = [], nom = NOMBRES[emp], Mes = nombreMesCap(nomMes);
+  const jor = jornadaDia(nomMes + "-15");
+  const semanal = jor * 5;
+  const deuda = s => s < 0 ? "debías " + fmtH(-s) : s > 0 ? "tenías " + fmtH(s) + " a tu favor" : "estabas al día";
+
+  let h = `<div class="nom-det"><h3><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${nom} — ${Mes} ${nomMes.slice(0,4)}
+    <button class="adm-btn" style="margin-left:auto" onclick="copiarDetalleNom('${emp}', this)">Copiar para enviar</button></h3>`;
+  t.push(`Resumen de horas — ${nom} — ${Mes} ${nomMes.slice(0,4)}`, "");
+
+  const regla = `Tu contrato es de ${semanal}h a la semana: ${jor}h por cada día laborable de lunes a viernes. Los festivos no cuentan; las vacaciones y los permisos cuentan como hechos. Se suma el mes entero: lo que pase de ahí se paga y lo que falte se debe.`;
+  h += `<div class="regla">${regla}</div>`;
+  t.push(regla, "");
+
+  // 1. Lo que venía de antes
+  const p = pendienteDeAntes(emp, nomMes);
+  h += `<h4>1. Lo que venía de meses anteriores</h4><ul>`;
+  t.push("1. Lo que venía de meses anteriores:");
+  const lineasAntes = [];
+  // Los meses del contrato antiguo (30h) se agrupan en una línea con lo que quedó al acabar agosto
+  const antiguos = p.meses.filter(m => m.mes < FECHA_CAMBIO_JORNADA.slice(0, 7));
+  const nuevos = p.meses.filter(m => m.mes >= FECHA_CAMBIO_JORNADA.slice(0, 7));
+  if (antiguos.length) {
+    const finAnt = antiguos[antiguos.length - 1];
+    lineasAntes.push(`Hasta el ${diaMes(ultimoDiaMes(finAnt.mes))} (contrato de ${JORNADA_ANTES * 5}h a la semana): ${deuda(finAnt.saldoFinal)}.`);
+  } else if (p.inicial || !p.meses.length) {
+    lineasAntes.push(`${p.desde.charAt(0).toUpperCase() + p.desde.slice(1)}: ${deuda(p.inicial)}.`);
+  }
+  nuevos.forEach(m => {
+    let l = `${nombreMesCap(m.mes)}: tocaban ${fmtH(m.debia)} e hiciste ${fmtH(m.hechas)} → ${fmtVar(m.exceso)}.`;
+    if (m.perdon) l += ` Se te perdonaron ${fmtH(m.perdon)} de deuda.`;
+    lineasAntes.push(l);
   });
+  lineasAntes.push(`Total que venía de antes: ${fmtVar(r.saldoAnterior)}.`);
+  lineasAntes.forEach((l, i) => { h += `<li${i === lineasAntes.length - 1 ? ' style="color:var(--blanco)"' : ""}>${l}</li>`; t.push("- " + l); });
+  h += `</ul>`;
+  t.push("");
 
-  h += `<div class="nom-resultado"><div class="nom-resultado-lbl">Con las horas reales</div>
-    <div class="nom-resultado-val ${claseSaldo(r.saldoReal)}">${textoResultado(r.saldoReal)}</div></div>`;
-
+  // 2. Este mes, semana a semana
+  const sems = semanasDelMes(emp, nomMes);
+  const hasta = r.enCurso ? " (hasta hoy)" : "";
+  h += `<h4>2. ${Mes}${hasta}: tocaban ${fmtH(r.debia)} e hiciste ${fmtH(r.hechas)} → ${fmtVar(r.exceso)}</h4>
+    <table class="rtable"><thead><tr><th>Semana</th><th>Hiciste</th><th>Tocaban</th><th>Diferencia</th></tr></thead><tbody>`;
+  t.push(`2. ${Mes}${hasta}: tocaban ${fmtH(r.debia)} e hiciste ${fmtH(r.hechas)} → ${fmtVar(r.exceso)}`);
+  sems.forEach(s => {
+    const dif = r2(s.hizo - s.tocaban), nota = s.notas.length ? ` (${s.notas.join(", ")})` : "";
+    h += `<tr><td>${rangoFechas(s.desde, s.hasta)}${nota ? `<small style="display:inline;color:var(--gris-texto)">${nota}</small>` : ""}</td>
+      <td>${fmtH(s.hizo)}</td><td>${fmtH(s.tocaban)}</td><td class="${dif >= 0 ? "ok" : "bad"}">${fmtVar(dif)}</td></tr>`;
+    t.push(`- ${rangoFechas(s.desde, s.hasta)}${nota}: hiciste ${fmtH(s.hizo)}, tocaban ${fmtH(s.tocaban)} → ${fmtVar(dif)}`);
+  });
+  h += `</tbody></table>`;
   if (r.perdon) {
-    h += `<div class="nom-resultado perdon"><div class="nom-resultado-lbl">Perdonándole ${fmtH(r.perdon)} de deuda</div>
-      <div class="nom-resultado-val ${claseSaldo(r.saldoConPerdon)}">${textoResultado(r.saldoConPerdon)}</div>
-      <small>${fmtH(r.perdon)} más a su favor que con las horas reales.</small></div>`;
+    h += `<div>Este mes se te perdonan <b>${fmtH(r.perdon)}</b> de deuda.</div>`;
+    t.push(`Este mes se te perdonan ${fmtH(r.perdon)} de deuda.`);
+  }
+  t.push("");
+
+  // 3. Total
+  const total = r.saldoConPerdon;
+  const formula = `${fmtVar(r.saldoAnterior)} de antes ${r.exceso >= 0 ? "+" : "−"} ${fmtH(Math.abs(r.exceso))} de ${nombreMes(nomMes)}`
+    + (r.perdon ? ` + ${fmtH(r.perdon)} perdonadas` : "");
+  const totTxt = total > 0 ? `TOTAL A PAGAR: ${fmtH(total)}` : total < 0 ? `DEBES: ${fmtH(-total)}` : "AL DÍA: 0h";
+  h += `<div class="total ${claseSaldo(total)}">${r.enCurso ? "Provisional — " : ""}${totTxt}</div><div class="regla">${formula}</div>`;
+  t.push(`${r.enCurso ? "Provisional — " : ""}${totTxt} (${formula})`);
+  if (r.liq) {
+    const l = `${r.liq > 0 ? "Pagado" : "Descontado"} en la nómina: ${fmtH(Math.abs(r.liq))}. Queda: ${saldoCorto(r.saldoFinal)}.`;
+    h += `<div class="ok" style="margin-top:6px">${l}</div>`;
+    t.push(l);
   }
 
-  if (r.enCurso && r.diasPend) {
-    h += `<div class="nom-aviso" style="color:var(--blanco-dim)">Quedan ${r.diasPend} día${r.diasPend > 1 ? "s" : ""} laborable${r.diasPend > 1 ? "s" : ""} (${fmtH(r.horasPend)} de jornada).
-      Si hace justo eso, el resultado no cambia; cada hora de más lo sube y cada hora de menos lo baja.
-      ${r.horasFuturas ? `<br>Ya tiene fichadas por adelantado ${fmtH(r.horasFuturas)} de esos días: contarán cuando lleguen.` : ""}</div>`;
-  }
-
-  if (r.liq) h += fila(r.liq > 0 ? "Pagado en la nómina" : "Descontado en la nómina", fmtH(Math.abs(r.liq)), "fuerte");
-  if (!r.enCurso) h += fila("Pasa al mes siguiente", `<span class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</span>`, "fuerte");
-
-  // El pago o descuento se registra al cerrar el mes (a partir del último día)
+  // Solo para el admin (no va en el texto copiado)
+  r.semanasLimite.forEach(s => {
+    h += `<div class="aviso">⚠ Semana ${rangoSemana(s.lunes)}: ${fmtH(s.horas)}, más de ${LIMITE_SEMANA}h (límite habitual de horas complementarias). Tenlo en cuenta en la nómina.</div>`;
+  });
   const acc = [];
   if (r.perdon) acc.push(`<button class="adm-btn" onclick="quitarPerdon('${emp}','${r.mes}')">Quitar perdón</button>`);
-  else if (r.saldoAnterior < 0 || r.saldoReal < 0) acc.push(`<button class="adm-btn" onclick="perdonar('${emp}','${r.mes}')">Perdonar deuda</button>`);
+  else if (r.saldoAnterior < 0) acc.push(`<button class="adm-btn" onclick="perdonar('${emp}','${r.mes}')">Perdonar deuda de antes</button>`);
   if (r.liq) acc.push(`<button class="adm-btn" onclick="quitarLiquidacionMes('${emp}','${r.mes}')">Deshacer ${r.liq > 0 ? "pago" : "descuento"}</button>`);
-  else if (!r.enCurso && r.saldoConPerdon !== 0) acc.push(`<button class="adm-btn" onclick="liquidarMes('${emp}','${r.mes}')">${r.saldoConPerdon > 0 ? "Registrar pago" : "Registrar descuento"}</button>`);
-  if (acc.length) h += `<div class="nom-acciones">${acc.join("")}</div>`;
+  if (acc.length) h += `<div class="acciones">${acc.join("")}</div>`;
+  h += `</div>`;
+  return { html: h, texto: t.join("\n") };
+}
 
-  return `<div class="nom-card">${h}</div>`;
+async function copiarDetalleNom(emp, btn) {
+  const texto = detalleNomina(emp).texto;
+  try {
+    await navigator.clipboard.writeText(texto);
+    btn.textContent = "Copiado ✓";
+  } catch(e) {
+    prompt("Copia este texto:", texto);
+  }
 }
 
 function historicoNomina(emp) {
   const ini = SALDO_ARRANQUE[emp] || 0;
   const filas = cierresMensuales(emp).map(r => `<tr${r.mes === nomMes ? ' class="subtotal"' : ""}>
-    <td>${MESES[+r.mes.slice(5,7) - 1]}${r.enCurso ? " (en curso)" : ""}</td>
+    <td>${nombreMesCap(r.mes)}${r.enCurso ? " (en curso)" : ""}</td>
     <td>${fmtH(r.debia)}</td><td>${fmtH(r.hechas)}</td>
     <td class="${r.exceso >= 0 ? "ok" : "bad"}">${fmtVar(r.exceso)}</td>
     <td>${r.perdon ? fmtVar(r.perdon) : ""}</td>
     <td>${r.liq ? (r.liq > 0 ? "pagado " : "descontado ") + fmtH(Math.abs(r.liq)) : ""}</td>
     <td class="${claseSaldo(r.saldoFinal)}">${saldoCorto(r.saldoFinal)}</td></tr>`).join("");
-  return `<div class="res-card">
-    <div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]} — mes a mes</div>
-    <table class="rtable"><thead><tr><th>Mes</th><th>Debía</th><th>Hechas</th><th>Exceso</th><th>Perdonado</th><th>Nómina</th><th>Pasa al siguiente</th></tr></thead>
-    <tbody><tr class="inicial"><td>Saldo inicial (${diaMes(INICIO_EMP[emp])})</td><td></td><td></td><td></td><td></td><td></td>
+  return `<div class="res-card" style="margin:0 12px 12px">
+    <div class="res-card-head"><span class="cal-emp-dot" style="background:${EMP_COLORES[emp]}"></span>${NOMBRES[emp]}</div>
+    <table class="rtable"><thead><tr><th>Mes</th><th>Tocaban</th><th>Hizo</th><th>Este mes</th><th>Perdonado</th><th>Nómina</th><th>Pendiente al acabar</th></tr></thead>
+    <tbody><tr class="inicial"><td>Al empezar (${diaMes(INICIO_EMP[emp])})</td><td></td><td></td><td></td><td></td><td></td>
       <td class="${claseSaldo(ini)}">${saldoCorto(ini)}</td></tr>${filas}</tbody></table></div>`;
 }
 
